@@ -26,7 +26,7 @@ const Footer = () => {
             <Github size={20} />
           </a>
           <a
-            href="https://www.instagram.com/yourprofile"
+            href="https://www.instagram.com/geetro_x?igsh=MXBnbnF5enJ1Y3c5cA=="
             target="_blank"
             rel="noopener noreferrer"
             className="hover:text-primary transition-colors duration-200"
