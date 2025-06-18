@@ -2,44 +2,40 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAudioPlayer } from "@/contexts/AudioPlayerContext";
 import { ArrowLeft, Heart } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function LikedAudiosPage() {
   const [likedAudios, setLikedAudios] = useState<any[]>([]);
+  const [userId, setUserId] = useState<string | null>(null);
   const navigate = useNavigate();
   const { playTrack } = useAudioPlayer();
 
   useEffect(() => {
-    const likedIds = JSON.parse(localStorage.getItem('likedAudios') || '[]');
+    supabase.auth.getUser().then(({ data }) => {
+      setUserId(data.user?.id || null);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!userId) {
+      setLikedAudios([]);
+      return;
+    }
+    const likedKey = `likedAudios_${userId}`;
+    const likedIds = JSON.parse(localStorage.getItem(likedKey) || '[]');
     if (likedIds.length === 0) {
       setLikedAudios([]);
       return;
     }
-    // Fetch all liked audios from Supabase
-    fetch('/api/liked-audios', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ids: likedIds })
-    })
-      .then(res => res.json())
-      .then(data => setLikedAudios(data))
-      .catch(() => setLikedAudios([]));
-  }, []);
-
-  // Fallback: direct supabase client if /api/liked-audios is not set up
-  useEffect(() => {
-    if (likedAudios.length > 0) return;
-    const likedIds = JSON.parse(localStorage.getItem('likedAudios') || '[]');
-    if (likedIds.length === 0) return;
-    import('@/integrations/supabase/client').then(({ supabase }) => {
-      supabase
-        .from('audio_stories')
-        .select('id, title, audio_url, cover_image_url, category, created_at, uploaded_by')
-        .in('id', likedIds)
-        .then(({ data, error }) => {
-          if (!error && data) setLikedAudios(data);
-        });
-    });
-  }, []);
+    supabase
+      .from('audio_stories')
+      .select('id, title, audio_url, cover_image_url, category, created_at, uploaded_by')
+      .in('id', likedIds)
+      .then(({ data, error }) => {
+        if (!error && data) setLikedAudios(data);
+        else setLikedAudios([]);
+      });
+  }, [userId]);
 
   const handlePlay = (audio: any) => {
     playTrack({
@@ -148,4 +144,4 @@ export default function LikedAudiosPage() {
       </div>
     </div>
   );
-} 
+}

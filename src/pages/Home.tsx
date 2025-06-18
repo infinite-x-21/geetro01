@@ -3,7 +3,7 @@ import AudioStoryFeed from "@/components/AudioStoryFeed";
 import Navbar from "@/components/Navbar";
 import ArtistProfilesList from "@/components/ArtistProfilesList";
 import { supabase } from "@/integrations/supabase/client";
-import { Play, Clock, Music, Headphones, Mic, Heart, Flame } from "lucide-react";
+import { Play, Clock, Music, Headphones, Mic, Heart, Flame, ChevronRight } from "lucide-react";
 import { useAudioPlayer } from "@/contexts/AudioPlayerContext";
 import { useNavigate } from 'react-router-dom';
 import UserSearch from "@/components/UserSearch";
@@ -68,7 +68,7 @@ function SongCard({
 }
 
 export default function HomePage() {
-  const [active, setActive] = useState("all");
+  const [active] = useState("all");
   const [search, setSearch] = useState("");
   const [selectedArtistId, setSelectedArtistId] = useState<string | null>(null);
   const [artistSongs, setArtistSongs] = useState<any[]>([]);
@@ -150,16 +150,28 @@ const [showUserSearch, setShowUserSearch] = useState(false);
     fetchSongs();
   }, [selectedArtistId]);
 
-  // Fetch trending audios (most liked)
+  // Fetch trending audios (most liked, fallback to all if likes column missing)
   useEffect(() => {
     supabase
       .from('audio_stories')
       .select('id, title, audio_url, cover_image_url, category, created_at, uploaded_by, likes')
       .order('likes', { ascending: false })
-      .limit(10)
+      .order('created_at', { ascending: false })
       .then(({ data, error }) => {
-        if (!error && data) setTrendingAudios(data);
-        else setTrendingAudios([]);
+        // Fallback: if likes column missing, fetch without likes
+        if (error && error.message.includes('likes')) {
+          supabase
+            .from('audio_stories')
+            .select('id, title, audio_url, cover_image_url, category, created_at, uploaded_by')
+            .order('created_at', { ascending: false })
+            .then(({ data: fallbackData }) => {
+              setTrendingAudios(fallbackData || []);
+            });
+        } else if (!error && data) {
+          setTrendingAudios(data);
+        } else {
+          setTrendingAudios([]);
+        }
       });
   }, []);
 
@@ -336,36 +348,106 @@ const [showUserSearch, setShowUserSearch] = useState(false);
                           )}
                         </div>
                       </div>
+                    </div>                            {/* Trending Audios Carousel */}
+                  <div className="mb-12 overflow-hidden">
+                    <div className="flex items-center justify-between mb-6">
+                      <div className="flex items-center gap-3">
+                        <div className="relative">
+                          <Flame className="text-orange-400 z-10 relative" size={28} />
+                          <div className="absolute -inset-1 bg-orange-400/20 blur-lg rounded-full animate-pulse"></div>
+                        </div>
+                        <div>
+                          <h2 className="text-xl md:text-2xl font-bold text-amber-200 leading-tight">Trending Audios</h2>
+                          <p className="text-sm text-amber-200/60">Discover what's hot right now</p>
+                        </div>
+                      </div>
+                      {/* Hide View All if /trending route is not present */}
+                      {/* <button 
+                        onClick={() => navigate('/trending')}
+                        className="hidden md:flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 text-sm font-medium transition-all duration-300 group"
+                      >
+                        View All 
+                        <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                      </button> */}
                     </div>
-                            {/* Trending Audios Carousel */}
-                  <div className="mb-12">
-                    <div className="flex items-center gap-3 mb-4">
-                      <Flame className="text-orange-400 animate-pulse" size={28} />
-                      <h2 className="text-xl font-bold text-amber-200">Trending Audios</h2>
-                    </div>
-                    <div className="flex gap-4 overflow-x-auto pb-2 no-scrollbar">
-                      {trendingAudios.length === 0 ? (
-                        <div className="text-muted-foreground">No trending audios yet.</div>
-                      ) : (
-                        trendingAudios.map(audio => (
-                          <div key={audio.id} className="min-w-[180px] max-w-[180px] bg-gradient-to-br from-orange-500/10 to-amber-500/10 rounded-xl p-4 flex flex-col items-center shadow-lg border border-amber-400/20 relative group hover:scale-105 transition-all duration-200">
-                            <div className="w-20 h-20 rounded-lg overflow-hidden bg-muted flex items-center justify-center mb-2 border-2 border-amber-400/30 group-hover:shadow-neon">
-                              {audio.cover_image_url ? (
-                                <img src={audio.cover_image_url} alt={audio.title} className="w-full h-full object-cover" />
-                              ) : (
-                                <span className="text-muted-foreground text-2xl">🎵</span>
-                              )}
-                            </div>
-                            <div className="font-semibold text-amber-100 truncate w-full text-center" title={audio.title}>{audio.title}</div>
-                            <button
-                              className="mt-3 px-4 py-1 rounded-full bg-amber-500/80 text-white font-bold text-xs shadow group-hover:bg-amber-600 transition flex items-center gap-1"
-                              onClick={() => handleSongPlay(audio)}
+                    <div className="relative">
+                      {/* Gradient Overlays for scroll indication */}
+                      <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-background to-transparent z-10"></div>
+                      <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-background to-transparent z-10"></div>
+                      
+                      <div className="flex gap-4 overflow-x-auto pb-4 px-2 -mx-2 scroll-smooth scrollbar-thin scrollbar-track-amber-900/20 scrollbar-thumb-amber-500/20 hover:scrollbar-thumb-amber-500/40">
+                        {trendingAudios.length === 0 ? (
+                          <div className="text-muted-foreground text-lg font-semibold px-8 py-12">No audios found.</div>
+                        ) : (
+                          trendingAudios.map(audio => (
+                            <div 
+                              key={audio.id} 
+                              className="group relative flex-shrink-0 w-[280px] md:w-[320px] bg-gradient-to-br from-amber-500/5 via-orange-500/5 to-amber-500/5 rounded-xl overflow-hidden border border-amber-500/10 hover:border-amber-500/30 transition-all duration-300"
                             >
-                              <Play size={16} /> Play
-                            </button>
-                          </div>
-                        ))
-                      )}
+                              {/* Background Glow Effect */}
+                              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                <div className="absolute inset-0 bg-gradient-to-br from-amber-500/20 via-orange-500/10 to-amber-500/5 blur-xl"></div>
+                              </div>
+                              {/* Content Container */}
+                              <div className="relative p-4 flex gap-4">
+                                {/* Cover Art */}
+                                <div className="relative flex-shrink-0 w-24 h-24 md:w-28 md:h-28 rounded-lg overflow-hidden">
+                                  {audio.cover_image_url ? (
+                                    <img 
+                                      src={audio.cover_image_url} 
+                                      alt={audio.title} 
+                                      className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
+                                    />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-amber-500/20 to-orange-500/20">
+                                      <Music className="text-amber-400" size={32} />
+                                    </div>
+                                  )}
+                                  {/* Play Button Overlay */}
+                                  <div 
+                                    className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-all duration-300 cursor-pointer"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleSongPlay(audio);
+                                    }}
+                                  >
+                                    <div className="w-12 h-12 rounded-full bg-amber-500/90 flex items-center justify-center transform scale-75 group-hover:scale-100 transition-all duration-300">
+                                      <Play size={20} className="text-white ml-1" />
+                                    </div>
+                                  </div>
+                                </div>
+                                
+                                {/* Info Section */}
+                                <div className="flex flex-col justify-between flex-grow min-w-0">
+                                  <div>
+                                    <h3 className="font-semibold text-lg md:text-xl text-amber-100 truncate mb-1" title={audio.title}>
+                                      {audio.title}
+                                    </h3>
+                                    <p className="text-sm text-amber-200/60 truncate" title={audio.artist_name}>
+                                      {audio.artist_name}
+                                    </p>
+                                  </div>
+                                  
+                                  <div className="flex items-center justify-between mt-2">
+                                    <div className="flex items-center gap-2">
+                                      <Heart 
+                                        size={16} 
+                                        className="text-amber-400/70 group-hover:text-amber-400 transition-colors" 
+                                      />
+                                      <span className="text-xs text-amber-300/70">
+                                        {audio.likes || 0}
+                                      </span>
+                                    </div>
+                                    <span className="text-xs text-amber-300/50">
+                                      {new Date(audio.created_at).toLocaleDateString()}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
                     </div>
                   </div>
                 {/* All Audios Section (functional, modern) */}
@@ -384,19 +466,9 @@ const [showUserSearch, setShowUserSearch] = useState(false);
                         onClick={() => setSearch("")}
                         title="Clear search"
                       >Clear</button>
-                    </div>
-                    <div className="flex gap-2 items-center">
-                      <label className="text-amber-200 font-medium mr-2">Sort by:</label>                    <select
-                        className="rounded-lg px-3 py-2 bg-black/60 text-amber-100 border border-amber-500/40"
-                        value={active}
-                        onChange={e => setActive(e.target.value)}
-                      >
-                        <option value="latest">Latest</option>
-                        <option value="oldest">Oldest</option>
-                        <option value="most-liked">Most Liked</option>
-                      </select>
+                    </div>                    <div className="flex gap-2 items-center">
                       <button
-                        className="ml-4 px-4 py-2 rounded-full bg-amber-500/80 text-white font-semibold shadow hover:bg-amber-600 transition"
+                        className="px-6 py-2.5 rounded-full bg-amber-500/80 text-white font-semibold shadow hover:bg-amber-600 transition flex items-center gap-2"
                         onClick={() => navigate("/shuffle")}
                         title="Shuffle Play"
                       >Shuffle Play</button>

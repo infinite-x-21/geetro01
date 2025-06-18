@@ -29,7 +29,7 @@ export default function AudioStoryFeed({ search = "", category = "all" }: AudioS
         const trendingQuery = supabase
           .from("audio_stories")
           .select("*")
-          .order("created_at", { ascending: false })
+          .order("likes", { ascending: false })
           .limit(10);
 
         const moreQuery = supabase

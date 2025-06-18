@@ -79,11 +79,22 @@ export default function ShufflePage() {
         title: song.title,
         artist: song.artist_name || "Unknown Artist"
       }));
-
-      // Start playing the first song with the complete playlist
+      // Always set the full playlist and start at the first song
       playTrack(tracks[0], tracks);
     }
-  }, [allSongs]);
+  }, [allSongs, playTrack]);
+
+  // When a user clicks a song in the Up Next list, play that song and set the playlist
+  const handleSongSelect = (index: number) => {
+    const tracks = allSongs.map(song => ({
+      id: song.id,
+      audioUrl: song.audio_url,
+      coverUrl: song.cover_image_url || "",
+      title: song.title,
+      artist: song.artist_name || "Unknown Artist"
+    }));
+    playTrack(tracks[index], tracks);
+  };
 
   // Reshuffle playlist
   const handleReshuffle = () => {
@@ -175,16 +186,7 @@ export default function ShufflePage() {
                       ? "bg-amber-500/20 border-amber-500/40"
                       : "bg-black/20 border-amber-500/10 hover:bg-black/40"
                   } transition-all duration-200 cursor-pointer`}
-                  onClick={() => {
-                    const tracks = allSongs.map(s => ({
-                      id: s.id,
-                      audioUrl: s.audio_url,
-                      coverUrl: s.cover_image_url || "",
-                      title: s.title,
-                      artist: s.artist_name || "Unknown Artist"
-                    }));
-                    playTrack(tracks[index], tracks);
-                  }}
+                  onClick={() => handleSongSelect(index)}
                 >
                   <div className="w-12 h-12 rounded-md overflow-hidden bg-muted flex-shrink-0">
                     {song.cover_image_url ? (
