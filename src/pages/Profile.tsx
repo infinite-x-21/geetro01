@@ -270,18 +270,25 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto mt-8 p-6">
-      {/* Back button */}
-      <div className="w-full flex mb-6">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => navigate("/home")}
-          aria-label="Back to home"
-        >
-          <ArrowLeft size={22} />
-        </Button>
+    <div className="min-h-screen bg-gradient-to-b from-background via-background/95 to-background/90">
+      {/* Background decorative elements */}
+      <div className="fixed inset-0 z-0 opacity-5">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,#FFB13C,transparent_70%)]"></div>
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,#FFB13C,transparent_50%)]"></div>
       </div>
+      
+      <div className="relative z-10 max-w-6xl mx-auto pt-8 px-6 pb-20">
+        {/* Back button */}
+        <div className="w-full flex mb-6">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate("/home")}
+            aria-label="Back to home"
+          >
+            <ArrowLeft size={22} />
+          </Button>
+        </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Profile Information Section */}
@@ -462,6 +469,7 @@ export default function ProfilePage() {
               </div>
             )}
           </div>
+        </div>
         </div>
       </div>
     </div>
