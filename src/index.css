@@ -1,0 +1,190 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Vintage Audio Theme Design System */
+
+@layer base {
+  :root {
+    --background: 30 15% 8%;        /* Warm dark background */
+    --foreground: 35 25% 95%;       /* Warm white text */
+    
+    --card: 32 15% 12%;             /* Slightly warmer card background */
+    --card-foreground: 35 25% 95%;
+    
+    --primary: 35 90% 50%;          /* Warm amber primary */
+    --primary-foreground: 0 0% 100%;
+    
+    --secondary: 32 10% 20%;        /* Warm dark secondary */
+    --secondary-foreground: 35 25% 90%;
+    
+    --muted: 32 10% 25%;
+    --muted-foreground: 35 20% 75%;
+    
+    --accent: 35 85% 55%;           /* Warm amber accent */
+    --accent-foreground: 35 25% 95%;
+    
+    --destructive: 0 62% 30%;
+    --destructive-foreground: 35 25% 95%;
+    
+    --border: 32 15% 25%;
+    --input: 32 15% 15%;
+    --ring: 35 90% 50%;
+    
+    --radius: 1rem;
+    
+    --glass-bg: rgba(39, 35, 31, 0.70);
+    --glass-border: rgba(255, 177, 60, 0.15);
+    --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.35);
+    --glass-blur: blur(18px);
+  }
+
+  .dark {
+    --background: 30 15% 5%;
+    --foreground: 35 25% 90%;
+    
+    --card: 32 15% 8%;
+    --card-foreground: 35 25% 90%;
+    
+    --popover: 32 15% 8%;
+    --popover-foreground: 35 25% 90%;
+    
+    --primary: 35 90% 55%;
+    --primary-foreground: 30 15% 5%;
+    
+    --secondary: 32 15% 12%;
+    --secondary-foreground: 35 25% 90%;
+    
+    --muted: 32 15% 10%;
+    --muted-foreground: 35 20% 70%;
+    
+    --accent: 35 85% 60%;
+    --accent-foreground: 30 15% 5%;
+    
+    --destructive: 0 62% 30%;
+    --destructive-foreground: 35 25% 90%;
+    
+    --border: 35 90% 40%;
+    --input: 32 15% 12%;
+    --ring: 35 90% 55%;
+    
+    --sidebar-background: 30 15% 7%;
+    --sidebar-foreground: 35 25% 90%;
+  }
+}
+
+@layer utilities {
+  .glass-card {
+    background: var(--glass-bg);
+    box-shadow: var(--shadow-glass);
+    border: 1.2px solid var(--glass-border);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border-radius: 1.5rem;
+  }
+  .glass-input {
+    background: rgba(44, 42, 39, 0.9);
+    border: 1.2px solid var(--glass-border);
+    color: var(--foreground);
+    border-radius: 9999px;
+    padding: 0.75rem 1.25rem;
+    font-size: 1rem;
+    backdrop-filter: blur(10px);
+    outline: none;
+    transition: border 0.2s;
+  }
+  .tab-btn {
+    @apply px-4 py-1 rounded-full font-semibold text-sm transition;
+    color: var(--foreground);
+    background: transparent;
+    border: 1.5px solid transparent;
+  }
+  .tab-btn.active {
+    background: rgba(44, 42, 39, 0.80);
+    border-color: var(--primary);
+    color: var(--primary);
+    box-shadow: 0 0 16px 0 var(--primary), 0 1.5px 7px 0 rgba(255, 177, 60, 0.2);
+  }
+  .tab-btn:not(.active):hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: rgba(44, 42, 39, 0.30);
+  }
+  .icon-btn {
+    background: rgba(44, 42, 39, 0.82);
+    border-radius: 9999px;
+    box-shadow: 0 2px 8px 0 rgba(44, 42, 39, 0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.55rem;
+    transition: background 0.15s;
+  }
+  .icon-btn:hover {
+    background: rgba(255, 177, 60, 0.15);
+  }
+  .glass-sheet {
+    @apply glass-card p-7;
+    min-width: 340px;
+    max-width: 92vw;
+  }
+  .glass-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(255, 177, 60, 0.15);
+    border-radius: 12px;
+  }
+}
+
+.logo-reflection {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.logo-reflection img {
+  display: block;
+}
+
+body {
+  @apply bg-background text-foreground;
+  font-family: 'Inter', 'Segoe UI', ui-sans-serif, system-ui;
+  min-height: 100vh;
+  background:
+    url('/lovable-uploads/100c870b-a737-49cb-a975-1ec080560c2a.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: rgba(20, 15, 10, 0.68); /* dark overlay for readability */
+}
+
+#root, main, .app-content {
+  position: relative;
+  z-index: 1;
+}
+
+/* Hide scrollbars for all browsers */
+.no-scrollbar {
+  scrollbar-width: none;     /* Firefox */
+  -ms-overflow-style: none;  /* IE and Edge */
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;             /* Chrome, Safari, Opera */
+}
+
+/* Add vintage audio glow effect */
+.audio-glow {
+  box-shadow: 0 0 15px rgba(255, 177, 60, 0.3);
+  transition: box-shadow 0.3s ease;
+}
+.audio-glow:hover {
+  box-shadow: 0 0 25px rgba(255, 177, 60, 0.5);
+}
+
