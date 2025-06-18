@@ -10,6 +10,7 @@ import UserSearch from "@/components/UserSearch";
 import HeroSection from "@/components/HeroSection";
 import AudioStoryUpload from "@/components/AudioStoryUpload";
 import { Dialog } from "@/components/ui/dialog";
+import HorizontalAudioScroll from "@/components/HorizontalAudioScroll";
 
 // Enhanced SongCard component for better playlist-like appearance
 function SongCard({ 
@@ -182,6 +183,22 @@ const [showUserSearch, setShowUserSearch] = useState(false);
     }));
     
     playTrack(track, playlist);
+  };
+
+  const navigateToArtist = (artistId: string) => {
+    navigate(`/profile/${artistId}`);
+  };
+
+  const handleAudioClick = (audio: any) => {
+    const track = {
+      id: audio.id,
+      audioUrl: audio.audio_url || "",
+      coverUrl: audio.cover_image_url || "",
+      title: audio.title || "",
+      artist: audio.artist_name || "Unknown Artist",
+    };
+    
+    playTrack(track);
   };
 
   return (
