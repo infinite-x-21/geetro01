@@ -121,44 +121,45 @@ export default function AudioStoryFeed({ search = "", category = "all", sortBy =
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+    <div className="grid gap-3">
       {stories.map((story) => (
         <div
           key={story.id}
-          className="group relative overflow-hidden rounded-xl border border-amber-500/20 hover:border-amber-500/40 transition-all duration-200"
+          onClick={() => handleSelect(story)}
+          className="group relative flex items-center gap-4 p-3 rounded-lg border border-amber-500/10 hover:border-amber-500/30 bg-card/30 hover:bg-card/60 transition-all duration-200 cursor-pointer"
         >
           {/* Cover Image */}
-          <div className="aspect-square bg-muted relative overflow-hidden">
+          <div className="relative w-[120px] aspect-[4/3] flex-shrink-0 rounded-md overflow-hidden bg-muted">
             {story.cover_image_url ? (
               <img
                 src={story.cover_image_url}
                 alt={story.title}
-                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-amber-500/20 to-amber-600/20">
-                <Play size={40} className="text-amber-400" />
+                <Play size={24} className="text-amber-400" />
               </div>
             )}
-            {/* Overlay */}
-            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
-            {/* Play Button */}
-            <button className="absolute inset-0 m-auto w-12 h-12 rounded-full bg-amber-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-amber-600 transform group-hover:scale-110">
-              <Play size={20} className="ml-1" />
-            </button>
+            {/* Play Button Overlay */}
+            <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+              <Play size={24} className="text-white transform scale-90 group-hover:scale-100 transition-transform duration-200" />
+            </div>
           </div>
 
           {/* Info Section */}
-          <div className="p-4">
-            <h3 className="font-semibold truncate mb-1">{story.title}</h3>
-            <p className="text-sm text-muted-foreground truncate">{story.artist_name}</p>
+          <div className="flex-grow min-w-0 flex flex-col justify-between py-1">
+            <div>
+              <h3 className="font-medium text-base truncate mb-0.5">{story.title}</h3>
+              <p className="text-sm text-muted-foreground/80 truncate">{story.artist_name}</p>
+            </div>
             <div className="flex items-center justify-between mt-2">
-              <span className="text-xs text-muted-foreground">
+              <span className="text-xs text-muted-foreground/70">
                 {new Date(story.created_at).toLocaleDateString()}
               </span>
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                <Heart size={12} />
-                <span>{story.likes || 0}</span>
+              <div className="flex items-center gap-1.5 text-muted-foreground/70">
+                <Heart size={13} className="group-hover:text-amber-500/70 transition-colors duration-200" />
+                <span className="text-xs">{story.likes || 0}</span>
               </div>
             </div>
           </div>
