@@ -196,10 +196,10 @@ export default function UserSearch() {
         )
       );
 
-      toast({ title: "Successfully followed user!" });
+      toast({ title: "Successfully followed Artist!" });
     } catch (error: any) {
       toast({
-        title: "Failed to follow user",
+        title: "Failed to follow Artist",
         description: error.message,
         variant: "destructive",
       });
@@ -232,10 +232,10 @@ export default function UserSearch() {
         )
       );
 
-      toast({ title: "Successfully unfollowed user!" });
+      toast({ title: "Successfully unfollowed Artist!" });
     } catch (error: any) {
       toast({
-        title: "Failed to unfollow user",
+        title: "Failed to unfollow Artist",
         description: error.message,
         variant: "destructive",
       });
@@ -269,7 +269,7 @@ export default function UserSearch() {
       <div className="relative">
         <div className="flex gap-2">
           <Input
-            placeholder="Start typing to find users..."
+            placeholder="Start typing to find Artists..."
             value={searchQuery}
             onChange={(e) => handleSearchChange(e.target.value)}
             onKeyPress={(e) => e.key === "Enter" && searchUsers()}

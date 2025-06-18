@@ -1,48 +1,88 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { Play, Heart } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
-// import AudioPlayerModal from "./AudioPlayerModal"; // No longer used here
 
 type AudioStoryRow = Database["public"]["Tables"]["audio_stories"]["Row"];
 
 interface AudioStoryFeedProps {
   search?: string;
   category?: string;
+  sortBy?: "latest" | "oldest" | "most-liked";
 }
 
-export default function AudioStoryFeed({ search = "", category = "all" }: AudioStoryFeedProps) {
+export default function AudioStoryFeed({ search = "", category = "all", sortBy = "latest" }: AudioStoryFeedProps) {
   const [stories, setStories] = useState<AudioStoryRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
     (async () => {
       setLoading(true);
-      let query = supabase
-        .from("audio_stories")
-        .select("id, title, category, audio_url, created_at, cover_image_url, uploaded_by")
-        .order("created_at", { ascending: false })
-        .limit(30);
+      setError(null);
+      try {
+        // Build the query
+        let query = supabase.from("audio_stories").select("id, title, category, audio_url, created_at, cover_image_url, uploaded_by");
 
-      if (category && category !== "all") {
-        query = query.eq("category", category);
-      }
-
-      const { data, error } = await query;
-      let filtered: AudioStoryRow[] = [];
-      if (!error && data) {
-        filtered = (data as AudioStoryRow[]);
-        if (search) {
-          filtered = filtered.filter(story =>
-            (story.title || "").toLowerCase().includes(search.toLowerCase())
-          );
+        // Apply category filter
+        if (category && category !== "all") {
+          query = query.eq("category", category);
         }
+
+        // Apply search filter
+        if (search) {
+          query = query.ilike("title", `%${search}%`);
+        }
+
+        // Apply sorting
+        switch (sortBy) {
+          case "oldest":
+            query = query.order("created_at", { ascending: true });
+            break;
+          case "most-liked":
+            query = query.order("likes", { ascending: false });
+            break;
+          case "latest":
+          default:
+            query = query.order("created_at", { ascending: false });
+            break;
+        }
+
+        const { data, error: fetchError } = await query;
+
+        if (fetchError) throw fetchError;
+
+        if (data) {
+          // Get unique uploader IDs
+          const uploaderIds = [...new Set(data.map(story => story.uploaded_by))];
+          
+          // Fetch artist names
+          const { data: profiles } = await supabase
+            .from("profiles")
+            .select("id, name")
+            .in("id", uploaderIds);
+
+          // Create a map of user IDs to names
+          const artistNames = new Map(profiles?.map(p => [p.id, p.name]) || []);
+
+          // Add artist names to stories
+          const storiesWithArtists = data.map(story => ({
+            ...story,
+            artist_name: artistNames.get(story.uploaded_by) || "Unknown Artist"
+          }));
+
+          setStories(storiesWithArtists);
+        }
+      } catch (err: any) {
+        setError(err.message);
+        console.error("Error fetching stories:", err);
+      } finally {
+        setLoading(false);
       }
-      setStories(filtered);
-      setLoading(false);
     })();
-  }, [search, category]);
+  }, [search, category, sortBy]);
 
   // Section label logic
   let sectionLabel = "All";
@@ -56,72 +96,74 @@ export default function AudioStoryFeed({ search = "", category = "all" }: AudioS
     navigate(`/stories/${story.id}`);
   };
 
+  if (loading) {
+    return (
+      <div className="flex justify-center py-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-2 border-amber-500 border-t-transparent"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-8 text-red-400">
+        <p>Error loading stories: {error}</p>
+      </div>
+    );
+  }
+
+  if (stories.length === 0) {
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        <p>No audio stories found.</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col w-full items-start">
-      <h2 className="text-2xl font-bold mb-4 w-full text-left max-w-2xl">
-        {sectionLabel} {search && <>/ <span className="font-normal">Search: {search}</span></>}
-      </h2>
-      {loading ? (
-        <div className="text-center w-full">Loading...</div>
-      ) : stories.length === 0 ? (
-        <div className="text-center text-muted-foreground w-full">
-          No {sectionLabel.toLowerCase()} found.
-        </div>
-      ) : (
-        <div className="flex flex-row gap-4 w-full overflow-x-auto no-scrollbar pb-2">
-          {stories.map((story) => (
-            <div key={story.id} className="flex flex-col items-center min-w-[96px]">
-              <button
-                onClick={() => handleSelect(story)}
-                className="rounded-xl overflow-hidden bg-muted/60 flex-shrink-0 focus:outline-none hover-scale transition"
-                style={{
-                  width: 96,
-                  height: 96,
-                  minWidth: 96,
-                  minHeight: 96,
-                  maxWidth: 96,
-                  maxHeight: 96,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  border: "2px solid rgba(120,255,189,0.18)",
-                  boxShadow: "0 1.5px 10px 0 rgba(38,255,171,0.08)",
-                  background: "#232B35",
-                  cursor: "pointer"
-                }}
-                aria-label={story.title || "Story cover"}
-                tabIndex={0}
-              >
-                {story.cover_image_url ? (
-                  <img
-                    src={story.cover_image_url}
-                    alt={story.title + " cover"}
-                    className="object-cover w-full h-full"
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      objectFit: "cover",
-                      borderRadius: "12px"
-                    }}
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground bg-muted border border-dashed rounded-xl">
-                    No Image
-                  </div>
-                )}
-              </button>
-              <div
-                className="w-full text-xs text-center mt-1 text-neutral-200 font-medium truncate"
-                title={story.title || ""}
-                style={{ maxWidth: 96 }}
-              >
-                {story.title || ""}
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      {stories.map((story) => (
+        <div
+          key={story.id}
+          className="group relative overflow-hidden rounded-xl border border-amber-500/20 hover:border-amber-500/40 transition-all duration-200"
+        >
+          {/* Cover Image */}
+          <div className="aspect-square bg-muted relative overflow-hidden">
+            {story.cover_image_url ? (
+              <img
+                src={story.cover_image_url}
+                alt={story.title}
+                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-amber-500/20 to-amber-600/20">
+                <Play size={40} className="text-amber-400" />
+              </div>
+            )}
+            {/* Overlay */}
+            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
+            {/* Play Button */}
+            <button className="absolute inset-0 m-auto w-12 h-12 rounded-full bg-amber-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-amber-600 transform group-hover:scale-110">
+              <Play size={20} className="ml-1" />
+            </button>
+          </div>
+
+          {/* Info Section */}
+          <div className="p-4">
+            <h3 className="font-semibold truncate mb-1">{story.title}</h3>
+            <p className="text-sm text-muted-foreground truncate">{story.artist_name}</p>
+            <div className="flex items-center justify-between mt-2">
+              <span className="text-xs text-muted-foreground">
+                {new Date(story.created_at).toLocaleDateString()}
+              </span>
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <Heart size={12} />
+                <span>{story.likes || 0}</span>
               </div>
             </div>
-          ))}
+          </div>
         </div>
-      )}
-      {/* Modal removed—navigation used instead */}
+      ))}
     </div>
   );
 }

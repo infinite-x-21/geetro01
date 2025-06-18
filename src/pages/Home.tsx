@@ -369,19 +369,18 @@ const [showUserSearch, setShowUserSearch] = useState(false);
                       >Clear</button>
                     </div>
                     <div className="flex gap-2 items-center">
-                      <label className="text-amber-200 font-medium mr-2">Sort by:</label>
-                      <select
+                      <label className="text-amber-200 font-medium mr-2">Sort by:</label>                    <select
                         className="rounded-lg px-3 py-2 bg-black/60 text-amber-100 border border-amber-500/40"
                         value={active}
                         onChange={e => setActive(e.target.value)}
                       >
-                        <option value="all">Latest</option>
+                        <option value="latest">Latest</option>
                         <option value="oldest">Oldest</option>
                         <option value="most-liked">Most Liked</option>
                       </select>
                       <button
                         className="ml-4 px-4 py-2 rounded-full bg-amber-500/80 text-white font-semibold shadow hover:bg-amber-600 transition"
-                        onClick={() => {/* Shuffle play logic here */}}
+                        onClick={() => navigate("/shuffle")}
                         title="Shuffle Play"
                       >Shuffle Play</button>
                     </div>
