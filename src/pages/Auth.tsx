@@ -8,33 +8,28 @@ import { Music } from "lucide-react";
 
 export default function AuthPage() {
   const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [mode, setMode] = useState<"login"|"signup">("login");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // Store user state, respond to auth state changes.
+  // Check for authenticated user
   useEffect(() => {
-    let ignore = false;
-
-    // Listen for auth state changes reliably
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (ignore) return;
       if (session?.user) {
         navigate("/home");
       }
     });
 
-    // On initial mount, check session as backup
     supabase.auth.getUser().then(({ data }) => {
-      if (!ignore && data.user) {
+      if (data.user) {
         navigate("/home");
       }
     });
 
     return () => {
-      ignore = true;
       subscription.unsubscribe();
     };
   }, [navigate]);
@@ -43,39 +38,53 @@ export default function AuthPage() {
     e.preventDefault();
     setLoading(true);
 
-    if (mode === "signup") {
-      // Add 'name' to user_metadata
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/`,
-          data: { name }
-        }
-      });
-      if (!error) {
-        toast({ title: "Check your email!", description: "A confirmation link was sent." });
+    try {
+      if (mode === "signup") {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/`,
+            data: { name }
+          }
+        });
+
+        if (error) throw error;
+        
+        toast({ 
+          title: "Check your email!", 
+          description: "A confirmation link was sent to your email address." 
+        });
       } else {
-        toast({ title: "Sign up error", description: error.message, variant: "destructive" });
-      }
-    } else {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (!error) {
-        // After login, update user_metadata name if needed
-        // Only if the name has changed or isn't set
+        const { data, error } = await supabase.auth.signInWithPassword({ 
+          email, 
+          password 
+        });
+
+        if (error) throw error;
+
+        // After login, update user metadata if needed
         if (data.user) {
-          const currentName = data.user.user_metadata?.name || "";
-          if (name && name !== currentName) {
-            await supabase.auth.updateUser({ data: { name } });
+          const currentName = data.user.user_metadata?.name;
+          if (name && currentName !== name) {
+            await supabase.auth.updateUser({
+              data: { name }
+            });
           }
         }
-        toast({ title: "Signed in!" });
+
+        toast({ title: "Welcome back!" });
         navigate("/home");
-      } else {
-        toast({ title: "Login error", description: error.message, variant: "destructive" });
       }
+    } catch (error: any) {
+      toast({ 
+        title: mode === "signup" ? "Sign up failed" : "Login failed", 
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   return (
@@ -147,7 +156,10 @@ export default function AuthPage() {
           <div className="text-center">
             <button
               type="button"
-              onClick={() => setMode(mode === "login" ? "signup" : "login")}
+              onClick={() => {
+                setMode(mode === "login" ? "signup" : "login");
+                setName(""); // Clear name when switching modes
+              }}
               className="text-sm text-amber-400 hover:text-amber-300 transition-colors"
             >
               {mode === "login"
