@@ -83,7 +83,7 @@ export default function ShufflePage() {
       // Start playing the first song with the complete playlist
       playTrack(tracks[0], tracks);
     }
-  }, [allSongs, playTrack]);
+  }, [allSongs]);
 
   // Reshuffle playlist
   const handleReshuffle = () => {

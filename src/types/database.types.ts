@@ -10,6 +10,7 @@ export type Database = {
           id: string
           title: string
           uploaded_by: string
+          likes: number
         }
         Insert: {
           audio_url: string
@@ -19,6 +20,7 @@ export type Database = {
           id?: string
           title: string
           uploaded_by: string
+          likes?: number
         }
         Update: {
           audio_url?: string
@@ -28,6 +30,7 @@ export type Database = {
           id?: string
           title?: string
           uploaded_by?: string
+          likes?: number
         }
         Relationships: []
       }

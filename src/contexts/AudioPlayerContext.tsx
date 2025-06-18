@@ -51,10 +51,18 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     setProgress(audioRef.current.currentTime);
   };
 
-  // On load, set duration
+  // On load, set duration and auto-play
   const onLoadedMetadata = () => {
     if (!audioRef.current) return;
     setDuration(audioRef.current.duration);
+    if (isPlaying) {
+      audioRef.current.play();
+    }
+  };
+
+  // Handle track ending
+  const onEnded = () => {
+    nextTrack();
   };
 
   // When track changes, reset progress/duration
@@ -63,11 +71,28 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     setDuration(0);
     if (audioRef.current) {
       audioRef.current.load();
-      setIsPlaying(false);
+      // Don't reset isPlaying here to maintain continuous playback
     }
   }, [currentTrack?.audioUrl]);
 
+  // Set up audio element event listeners
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    audio.addEventListener('timeupdate', onTimeUpdate);
+    audio.addEventListener('loadedmetadata', onLoadedMetadata);
+    audio.addEventListener('ended', onEnded);
+
+    return () => {
+      audio.removeEventListener('timeupdate', onTimeUpdate);
+      audio.removeEventListener('loadedmetadata', onLoadedMetadata);
+      audio.removeEventListener('ended', onEnded);
+    };
+  }, []);
+
   const playTrack = (track: Track, newPlaylist?: Track[]) => {
+    const wasPlaying = isPlaying;
     setCurrentTrack(track);
     if (newPlaylist) {
       setPlaylistState(newPlaylist);
@@ -77,6 +102,7 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
       setPlaylistState([track]);
       setCurrentTrackIndex(0);
     }
+    setIsPlaying(wasPlaying); // Maintain play state when changing tracks
   };
 
   const togglePlayPause = () => {
@@ -90,17 +116,37 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
   };
 
   const nextTrack = () => {
-    if (playlist.length === 0 || currentTrackIndex >= playlist.length - 1) return;
-    const nextIndex = currentTrackIndex + 1;
+    if (playlist.length === 0) return;
+    
+    // Loop back to start if at end
+    const nextIndex = currentTrackIndex >= playlist.length - 1 ? 0 : currentTrackIndex + 1;
     setCurrentTrackIndex(nextIndex);
     setCurrentTrack(playlist[nextIndex]);
+    
+    // Maintain play state
+    if (isPlaying && audioRef.current) {
+      audioRef.current.play().catch(console.error);
+    }
   };
 
   const previousTrack = () => {
-    if (playlist.length === 0 || currentTrackIndex <= 0) return;
-    const prevIndex = currentTrackIndex - 1;
+    if (playlist.length === 0) return;
+    
+    // Loop to end if at start
+    const prevIndex = currentTrackIndex <= 0 ? playlist.length - 1 : currentTrackIndex - 1;
     setCurrentTrackIndex(prevIndex);
     setCurrentTrack(playlist[prevIndex]);
+    
+    // Maintain play state
+    if (isPlaying && audioRef.current) {
+      audioRef.current.play().catch(console.error);
+    }
+  };
+
+  const setPlaylist = (tracks: Track[], startIndex = 0) => {
+    setPlaylistState(tracks);
+    setCurrentTrackIndex(startIndex);
+    setCurrentTrack(tracks[startIndex]);
   };
 
   const seekTo = (time: number) => {
@@ -109,26 +155,14 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     setProgress(time);
   };
 
-  const setPlaylist = (tracks: Track[], startIndex: number = 0) => {
-    setPlaylistState(tracks);
-    setCurrentTrackIndex(startIndex);
-    if (tracks.length > startIndex) {
-      setCurrentTrack(tracks[startIndex]);
-    }
+  const skipForward = (seconds = 10) => {
+    if (!audioRef.current) return;
+    audioRef.current.currentTime = Math.min(audioRef.current.currentTime + seconds, audioRef.current.duration);
   };
 
-  const skipBack = (seconds: number = 10) => {
+  const skipBack = (seconds = 10) => {
     if (!audioRef.current) return;
-    const newTime = Math.max(0, audioRef.current.currentTime - seconds);
-    audioRef.current.currentTime = newTime;
-    setProgress(newTime);
-  };
-
-  const skipForward = (seconds: number = 10) => {
-    if (!audioRef.current) return;
-    const newTime = Math.min(duration, audioRef.current.currentTime + seconds);
-    audioRef.current.currentTime = newTime;
-    setProgress(newTime);
+    audioRef.current.currentTime = Math.max(audioRef.current.currentTime - seconds, 0);
   };
 
   return (
@@ -152,17 +186,7 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
       }}
     >
       {children}
-      {currentTrack && (
-        <audio
-          ref={audioRef}
-          src={currentTrack.audioUrl}
-          onTimeUpdate={onTimeUpdate}
-          onLoadedMetadata={onLoadedMetadata}
-          onPlay={() => setIsPlaying(true)}
-          onPause={() => setIsPlaying(false)}
-          className="hidden"
-        />
-      )}
+      <audio ref={audioRef} />
     </AudioPlayerContext.Provider>
   );
 };
