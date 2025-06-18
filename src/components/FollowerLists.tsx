@@ -2,15 +2,24 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Users, UserPlus, UserMinus } from "lucide-react";
+import { Users, UserPlus, UserMinus, Users2, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetClose
+} from "@/components/ui/sheet";
 
 interface User {
   id: string;
   name: string | null;
   avatar_url: string | null;
   isFollowing?: boolean;
+  followers_count?: number;
+  following_count?: number;
 }
 
 interface FollowersListProps {
@@ -59,7 +68,7 @@ export default function FollowersList({ userId, currentUserId, type, count }: Fo
   }, [currentUserId]);
 
   const loadUsers = async () => {
-    if (!showList || users.length > 0) return;
+    if (!showList) return;
     
     setLoading(true);
     try {
@@ -72,11 +81,10 @@ export default function FollowersList({ userId, currentUserId, type, count }: Fo
           
         if (followerError) throw followerError;
         
-        // Then get the profiles
+        // Then get the profiles and their stats
         const followerIds = followerData.map(f => f.follower_id);
         if (followerIds.length === 0) {
           setUsers([]);
-          setLoading(false);
           return;
         }
         
@@ -86,15 +94,31 @@ export default function FollowersList({ userId, currentUserId, type, count }: Fo
           .in('id', followerIds);
           
         if (profilesError) throw profilesError;
+
+        // Set the users with their following status
+        const usersList = profilesData.map(profile => ({
+          ...profile,
+          isFollowing: followingUsers.has(profile.id),
+          followers_count: 0,
+          following_count: 0
+        }));
         
-        const usersList = profilesData?.map(profile => ({
-          id: profile.id,
-          name: profile.name,
-          avatar_url: profile.avatar_url,
-          isFollowing: followingUsers.has(profile.id)
-        })).filter(user => user.id !== currentUserId) || [];
+        setUsers(usersList.filter(user => user.id !== currentUserId));
+
+        // Then get their stats asynchronously
+        const usersWithStats = await Promise.all(
+          usersList.map(async (user) => {
+            const { data: stats } = await supabase
+              .rpc('get_user_stats', { user_id: user.id });
+            return {
+              ...user,
+              followers_count: stats?.[0]?.followers_count ?? 0,
+              following_count: stats?.[0]?.following_count ?? 0
+            };
+          })
+        );
         
-        setUsers(usersList);
+        setUsers(usersWithStats.filter(user => user.id !== currentUserId));
       } else {
         // First get the following IDs
         const { data: followingData, error: followingError } = await supabase
@@ -104,11 +128,10 @@ export default function FollowersList({ userId, currentUserId, type, count }: Fo
           
         if (followingError) throw followingError;
         
-        // Then get the profiles
+        // Then get the profiles and their stats
         const followingIds = followingData.map(f => f.following_id);
         if (followingIds.length === 0) {
           setUsers([]);
-          setLoading(false);
           return;
         }
         
@@ -118,15 +141,31 @@ export default function FollowersList({ userId, currentUserId, type, count }: Fo
           .in('id', followingIds);
           
         if (profilesError) throw profilesError;
+
+        // Set the users with their following status
+        const usersList = profilesData.map(profile => ({
+          ...profile,
+          isFollowing: followingUsers.has(profile.id),
+          followers_count: 0,
+          following_count: 0
+        }));
         
-        const usersList = profilesData?.map(profile => ({
-          id: profile.id,
-          name: profile.name,
-          avatar_url: profile.avatar_url,
-          isFollowing: followingUsers.has(profile.id)
-        })).filter(user => user.id !== currentUserId) || [];
+        setUsers(usersList.filter(user => user.id !== currentUserId));
+
+        // Then get their stats asynchronously
+        const usersWithStats = await Promise.all(
+          usersList.map(async (user) => {
+            const { data: stats } = await supabase
+              .rpc('get_user_stats', { user_id: user.id });
+            return {
+              ...user,
+              followers_count: stats?.[0]?.followers_count ?? 0,
+              following_count: stats?.[0]?.following_count ?? 0
+            };
+          })
+        );
         
-        setUsers(usersList);
+        setUsers(usersWithStats.filter(user => user.id !== currentUserId));
       }
     } catch (error: any) {
       toast({
@@ -139,169 +178,200 @@ export default function FollowersList({ userId, currentUserId, type, count }: Fo
     }
   };
 
+  useEffect(() => {
+    if (showList) {
+      loadUsers();
+    }
+  }, [showList]);
+
   const handleFollow = async (targetUserId: string) => {
     if (!currentUserId) return;
 
     try {
-      const isFollowing = followingUsers.has(targetUserId);
-      
-      if (isFollowing) {
-        const { error } = await supabase
-          .from('followers')
-          .delete()
-          .match({
-            follower_id: currentUserId,
-            following_id: targetUserId
-          });
-
-        if (error) throw error;
-
-        setFollowingUsers(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(targetUserId);
-          return newSet;
+      const { error } = await supabase
+        .from('followers')
+        .insert({
+          follower_id: currentUserId,
+          following_id: targetUserId,
         });
 
-        setUsers(prev => 
-          prev.map(user => 
-            user.id === targetUserId 
-              ? { ...user, isFollowing: false }
-              : user
-          )
-        );
+      if (error) throw error;
 
-        toast({ title: "Successfully unfollowed user!" });
-      } else {
-        const { error } = await supabase
-          .from('followers')
-          .insert({
-            follower_id: currentUserId,
-            following_id: targetUserId
-          });
+      setFollowingUsers(prev => new Set([...prev, targetUserId]));
+      setUsers(prev => 
+        prev.map(user => 
+          user.id === targetUserId 
+            ? { ...user, isFollowing: true, followers_count: (user.followers_count || 0) + 1 }
+            : user
+        )
+      );
 
-        if (error) throw error;
-
-        setFollowingUsers(prev => new Set([...prev, targetUserId]));
-
-        setUsers(prev => 
-          prev.map(user => 
-            user.id === targetUserId 
-              ? { ...user, isFollowing: true }
-              : user
-          )
-        );
-
-        toast({ title: "Successfully followed user!" });
-      }
+      toast({ title: "Successfully followed user!" });
     } catch (error: any) {
       toast({
-        title: "Failed to follow/unfollow user",
+        title: "Failed to follow user",
         description: error.message,
         variant: "destructive",
       });
     }
   };
 
-  const handleToggleList = () => {
-    setShowList(!showList);
-    if (!showList) {
-      loadUsers();
+  const handleUnfollow = async (targetUserId: string) => {
+    if (!currentUserId) return;
+
+    try {
+      const { error } = await supabase
+        .from('followers')
+        .delete()
+        .match({
+          follower_id: currentUserId,
+          following_id: targetUserId
+        });
+
+      if (error) throw error;
+
+      setFollowingUsers(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(targetUserId);
+        return newSet;
+      });
+      
+      setUsers(prev => 
+        prev.map(user => 
+          user.id === targetUserId 
+            ? { ...user, isFollowing: false, followers_count: Math.max((user.followers_count || 1) - 1, 0) }
+            : user
+        )
+      );
+
+      toast({ title: "Successfully unfollowed user!" });
+    } catch (error: any) {
+      toast({
+        title: "Failed to unfollow user",
+        description: error.message,
+        variant: "destructive",
+      });
     }
   };
 
   const handleViewProfile = (targetUserId: string) => {
     navigate(`/profile/${targetUserId}`);
+    setShowList(false);
   };
 
-  if (count === 0) {
-    return (
-      <div className="text-center py-4">
-        <Users size={24} className="mx-auto mb-2 text-muted-foreground" />
-        <p className="text-sm text-muted-foreground">
-          No {type === "followers" ? "followers" : "following"} yet
-        </p>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-3">
+    <div>
       <Button
         variant="outline"
-        onClick={handleToggleList}
-        className="w-full flex items-center justify-between"
+        onClick={() => setShowList(true)}
+        className="w-full flex items-center justify-between bg-muted/30 hover:bg-muted/50"
       >
         <span className="flex items-center gap-2">
-          <Users size={16} />
+          {type === "followers" ? <Users size={16} /> : <Users2 size={16} />}
           {count} {type === "followers" ? "Followers" : "Following"}
-        </span>
-        <span className="text-xs">
-          {showList ? "Hide" : "Show"}
         </span>
       </Button>
 
-      {showList && (
-        <div className="bg-muted/30 rounded-lg p-4 space-y-3 max-h-80 overflow-y-auto">
-          {loading ? (
-            <div className="text-center py-4">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
-              <p className="text-sm text-muted-foreground mt-2">Loading...</p>
-            </div>
-          ) : users.length === 0 ? (
-            <div className="text-center py-4">
-              <p className="text-sm text-muted-foreground">
-                No {type === "followers" ? "followers" : "following"} found
-              </p>
-            </div>
-          ) : (
-            users.map((user) => (
-              <div
-                key={user.id}
-                className="flex items-center justify-between p-3 bg-background rounded-lg border hover:border-primary/30 transition-all"
-              >
-                <div 
-                  className="flex items-center gap-3 flex-1 cursor-pointer"
-                  onClick={() => handleViewProfile(user.id)}
-                >
-                  <Avatar className="h-8 w-8">
-                    {user.avatar_url ? (
-                      <AvatarImage src={user.avatar_url} alt={user.name || "User"} />
-                    ) : (
-                      <AvatarFallback className="text-xs">
-                        {getInitials(user.name)}
-                      </AvatarFallback>
-                    )}
-                  </Avatar>
-                  <span className="font-medium text-sm truncate">
-                    {user.name || "Anonymous User"}
-                  </span>
-                </div>
-
-                {currentUserId && user.id !== currentUserId && (
-                  <Button
-                    variant={user.isFollowing ? "destructive" : "default"}
-                    size="sm"
-                    onClick={() => handleFollow(user.id)}
-                    className="text-xs px-2 py-1"
-                  >
-                    {user.isFollowing ? (
-                      <>
-                        <UserMinus size={10} className="mr-1" />
-                        Unfollow
-                      </>
-                    ) : (
-                      <>
-                        <UserPlus size={10} className="mr-1" />
-                        Follow
-                      </>
-                    )}
-                  </Button>
+      <Sheet open={showList} onOpenChange={setShowList}>
+        <SheetContent side="right" className="w-full sm:max-w-lg">
+          <SheetHeader>
+            <div className="flex items-center justify-between">
+              <SheetTitle className="flex items-center gap-2">
+                {type === "followers" ? (
+                  <>
+                    <Users className="h-5 w-5" />
+                    Followers
+                  </>
+                ) : (
+                  <>
+                    <Users2 className="h-5 w-5" />
+                    Following
+                  </>
                 )}
+              </SheetTitle>
+              <SheetClose asChild>
+                <Button variant="ghost" size="icon">
+                  <X className="h-4 w-4" />
+                </Button>
+              </SheetClose>
+            </div>
+          </SheetHeader>
+
+          <div className="mt-8 flex-1 overflow-y-auto">
+            {loading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
               </div>
-            ))
-          )}
-        </div>
-      )}
+            ) : users.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                <p className="font-medium">
+                  {type === "followers"
+                    ? "No followers yet"
+                    : "Not following anyone yet"}
+                </p>
+                <p className="text-sm mt-1">
+                  {type === "followers"
+                    ? "Share your content to get followers!"
+                    : "Find and follow other users to see their content!"}
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {users.map((user) => (
+                  <div
+                    key={user.id}
+                    className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border border-primary/10 hover:border-primary/30 transition-all duration-200"
+                  >
+                    <div 
+                      className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer"
+                      onClick={() => handleViewProfile(user.id)}
+                    >
+                      <Avatar className="h-10 w-10 border-2 border-background">
+                        {user.avatar_url ? (
+                          <AvatarImage src={user.avatar_url} alt={user.name || "User"} />
+                        ) : (
+                          <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
+                        )}
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-medium truncate">
+                          {user.name || "Anonymous User"}
+                        </h3>
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                          <span>{user.followers_count} followers</span>
+                          <span>{user.following_count} following</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {currentUserId && user.id !== currentUserId && (
+                      <Button
+                        variant={user.isFollowing ? "destructive" : "default"}
+                        size="sm"
+                        onClick={() => user.isFollowing ? handleUnfollow(user.id) : handleFollow(user.id)}
+                        className="ml-4"
+                      >
+                        {user.isFollowing ? (
+                          <>
+                            <UserMinus size={14} className="mr-1" />
+                            Unfollow
+                          </>
+                        ) : (
+                          <>
+                            <UserPlus size={14} className="mr-1" />
+                            Follow
+                          </>
+                        )}
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

@@ -282,7 +282,7 @@ const [showUserSearch, setShowUserSearch] = useState(false);
                 : "text-amber-100/70 hover:text-amber-200"
             }`}
           >
-            Find Users
+            Find Artist's
           </button>
         </div>
 

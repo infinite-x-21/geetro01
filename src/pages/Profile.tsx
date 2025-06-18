@@ -3,12 +3,34 @@ import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { LogOut, User as UserIcon, Loader2, Plus, ArrowLeft, Trash2 } from "lucide-react";
+import { LogOut, User as UserIcon, Loader2, Plus, ArrowLeft, Trash2, Users, Music, Calendar } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import type { Database } from "@/integrations/supabase/types";
+import FollowersList from "@/components/FollowerLists";
+import { cn } from "@/lib/utils";
 
 type AudioStoryRow = Database["public"]["Tables"]["audio_stories"]["Row"];
+
+// Stats Card Component
+function StatsCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string | number }) {
+  return (
+    <div className="bg-muted/30 p-4 rounded-lg border border-primary/10">
+      <div className="flex items-center gap-2 text-muted-foreground mb-1">
+        {icon}
+        <span className="text-sm font-medium">{label}</span>
+      </div>
+      <div className="text-lg font-semibold">{value}</div>
+    </div>
+  );
+}
+
+interface UserStats {
+  totalUploads: number;
+  joinDate: string;
+  followers: number;
+  following: number;
+}
 
 // Util for initials
 function getInitials(name: string | null) {
@@ -32,9 +54,42 @@ export default function ProfilePage() {
   } | null>(null);
   const [userAudioStories, setUserAudioStories] = useState<AudioStoryRow[]>([]);
   const [editName, setEditName] = useState("");
+  const [userStats, setUserStats] = useState<UserStats>({
+    totalUploads: 0,
+    joinDate: "",
+    followers: 0,
+    following: 0
+  });
   const { toast } = useToast();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Fetch user stats
+  const fetchUserStats = async (userId: string) => {
+    try {
+      // Get follower counts
+      const { data: stats } = await supabase
+        .rpc('get_user_stats', { user_id: userId });
+      
+      // Get join date from first upload or profile creation
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('updated_at')
+        .eq('id', userId)
+        .single();
+      
+      const joinDate = profile?.updated_at || new Date().toISOString();
+      
+      setUserStats({
+        totalUploads: userAudioStories.length,
+        joinDate,
+        followers: stats?.[0]?.followers_count ?? 0,
+        following: stats?.[0]?.following_count ?? 0,
+      });
+    } catch (error) {
+      console.error('Error fetching user stats:', error);
+    }
+  };
 
   // Fetch user and profile data
   useEffect(() => {
@@ -62,10 +117,14 @@ export default function ProfilePage() {
         if (!audioError && audioData) {
           setUserAudioStories(audioData);
         }
+
+        // Fetch user stats
+        await fetchUserStats(user.id);
       }
       setLoading(false);
     };
     getUserAndProfile();
+    
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
       if (session?.user) {
@@ -75,7 +134,6 @@ export default function ProfilePage() {
       }
     });
     return () => subscription.unsubscribe();
-    // eslint-disable-next-line
   }, []);
 
   // Handle profile name update
@@ -212,7 +270,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto mt-8 p-6">
+    <div className="max-w-6xl mx-auto mt-8 p-6">
       {/* Back button */}
       <div className="w-full flex mb-6">
         <Button
@@ -225,31 +283,33 @@ export default function ProfilePage() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Profile Information Section */}
-        <div className="bg-card p-6 rounded-xl shadow border border-primary/10">
-          <div className="flex flex-col items-center gap-6">
-            <div className="flex flex-col items-center gap-2 w-full">
-              <div className="relative h-20 w-20 mb-1">
-                <Avatar className="h-20 w-20 ring-2 ring-primary">
+        <div className="lg:col-span-4 space-y-6">
+          {/* Profile Card */}
+          <div className="bg-card p-6 rounded-xl shadow-lg border border-primary/10 backdrop-blur-sm bg-opacity-95">
+            <div className="flex flex-col items-center gap-6">
+              {/* Avatar Section */}
+              <div className="relative h-32 w-32">
+                <Avatar className="h-32 w-32 ring-4 ring-primary/20">
                   {profile.avatar_url ? (
                     <AvatarImage src={profile.avatar_url} alt={profile.name || "User"} />
                   ) : (
-                    <AvatarFallback className="text-2xl bg-muted">
+                    <AvatarFallback className="text-4xl bg-muted">
                       {getInitials(profile.name)}
                     </AvatarFallback>
                   )}
                 </Avatar>
                 <button
                   type="button"
-                  className="absolute right-0 bottom-0 bg-primary text-primary-foreground rounded-full flex items-center justify-center w-8 h-8 border-2 border-background shadow-lg disabled:opacity-60"
+                  className="absolute right-0 bottom-0 bg-primary hover:bg-primary/90 text-primary-foreground rounded-full flex items-center justify-center w-10 h-10 border-2 border-background shadow-lg disabled:opacity-60 transition-all duration-200"
                   onClick={onAvatarClick}
                   aria-label={uploading ? "Uploading..." : "Upload new photo"}
                   disabled={uploading}
                   style={{ cursor: uploading ? "not-allowed" : "pointer" }}
                 >
                   {uploading
-                    ? <Loader2 className="animate-spin" size={20} />
+                    ? <Loader2 className="animate-spin" size={24} />
                     : <Plus size={24} />}
                 </button>
                 <input
@@ -260,64 +320,105 @@ export default function ProfilePage() {
                   onChange={handleAvatarChange}
                 />
               </div>
-            </div>
-            
-            <div className="flex flex-col w-full items-center gap-2 text-center">
-              <label className="text-sm font-bold mb-0.5 w-full text-center">Name:</label>
-              <div className="flex gap-2 w-full justify-center">
-                <Input
-                  value={editName}
-                  onChange={e => setEditName(e.target.value)}
-                  className="max-w-[160px] py-1.5 text-base flex-1 text-center"
-                  placeholder="Your Name"
-                  disabled={saving}
+              
+              {/* Name Edit Section */}
+              <div className="flex flex-col w-full items-center gap-2">
+                <div className="flex gap-2 w-full justify-center">
+                  <Input
+                    value={editName}
+                    onChange={e => setEditName(e.target.value)}
+                    className="max-w-[200px] py-2 text-lg flex-1 text-center font-medium"
+                    placeholder="Your Name"
+                    disabled={saving}
+                  />
+                  <Button
+                    onClick={handleSave}
+                    disabled={saving || editName.trim() === "" || editName === profile.name}
+                    className="px-4"
+                    variant="secondary"
+                    type="button"
+                  >
+                    {saving ? <Loader2 className="animate-spin" size={16} /> : "Save"}
+                  </Button>
+                </div>
+                <div className="text-muted-foreground text-sm">{user.email}</div>
+              </div>
+
+              {/* User Stats */}
+              <div className="grid grid-cols-2 gap-4 w-full pt-4">
+                <StatsCard
+                  icon={<Music className="w-5 h-5" />}
+                  label="Uploads"
+                  value={userStats.totalUploads}
                 />
+                <StatsCard
+                  icon={<Calendar className="w-5 h-5" />}
+                  label="Joined"
+                  value={new Date(userStats.joinDate).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}
+                />
+              </div>
+              
+              {/* Followers/Following Section */}
+              <div className="w-full space-y-4">
+                <FollowersList
+                  userId={user.id}
+                  currentUserId={user.id}
+                  type="followers"
+                  count={userStats.followers}
+                />
+                <FollowersList
+                  userId={user.id}
+                  currentUserId={user.id}
+                  type="following"
+                  count={userStats.following}
+                />
+              </div>
+              
+              {/* Sign Out Button */}
+              <div className="w-full pt-4">
                 <Button
-                  size="sm"
-                  onClick={handleSave}
-                  disabled={saving || editName.trim() === "" || editName === profile.name}
-                  className="px-2"
-                  variant="secondary"
-                  type="button"
-                  style={{ minWidth: "2.8rem" }}
+                  className="w-full"
+                  variant="destructive"
+                  onClick={handleLogout}
                 >
-                  {saving ? <Loader2 className="animate-spin" size={16} /> : "Save"}
+                  <LogOut className="mr-2" size={18} />
+                  Sign out
                 </Button>
               </div>
-            </div>
-            
-            <div className="flex flex-col w-full items-center gap-1 mt-2">
-              <label className="text-sm font-bold">Email:</label>
-              <div className="w-full text-center text-base text-muted-foreground truncate">{user.email}</div>
-            </div>
-            
-            <div className="w-full pt-4">
-              <Button
-                className="w-full"
-                variant="destructive"
-                onClick={handleLogout}
-              >
-                <LogOut className="mr-2" size={18} />
-                Sign out
-              </Button>
             </div>
           </div>
         </div>
 
-        {/* User's Audio Stories Section */}
-        <div className="bg-card p-6 rounded-xl shadow border border-primary/10">
-          <h2 className="text-xl font-bold mb-4 text-center">My Audio Stories</h2>
-          
-          {userAudioStories.length === 0 ? (
-            <div className="text-center text-muted-foreground py-8">
-              <p>You haven't uploaded any audio stories yet.</p>
+        {/* Content Section */}
+        <div className="lg:col-span-8 space-y-6">
+          {/* Audio Stories Section */}
+          <div className="bg-card p-6 rounded-xl shadow-lg border border-primary/10 backdrop-blur-sm bg-opacity-95">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold">My Audio Stories</h2>
+              <Button
+                onClick={() => navigate("/upload")}
+                size="sm"
+                className="gap-2"
+              >
+                <Plus size={18} />
+                Upload New
+              </Button>
             </div>
-          ) : (
-            <div className="space-y-3 max-h-96 overflow-y-auto">
-              {userAudioStories.map((story) => (
-                <div key={story.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border">
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <div className="w-12 h-12 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+            
+            {userAudioStories.length === 0 ? (
+              <div className="text-center text-muted-foreground py-12 bg-muted/30 rounded-lg">
+                <Music className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p className="font-medium">You haven't uploaded any audio stories yet.</p>
+                <p className="text-sm mt-2">Share your first story with the world!</p>
+              </div>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2">
+                {userAudioStories.map((story) => (
+                  <div 
+                    key={story.id} 
+                    className="group flex flex-col bg-muted/30 rounded-lg border border-primary/10 overflow-hidden hover:border-primary/30 transition-all duration-200"
+                  >
+                    <div className="aspect-video relative">
                       {story.cover_image_url ? (
                         <img
                           src={story.cover_image_url}
@@ -325,40 +426,42 @@ export default function ProfilePage() {
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">
-                          No Image
+                        <div className="w-full h-full flex items-center justify-center bg-muted text-muted-foreground">
+                          No Cover Image
                         </div>
                       )}
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleDeleteAudioStory(story.id)}
+                        disabled={deleting === story.id}
+                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                      >
+                        {deleting === story.id ? (
+                          <Loader2 className="animate-spin" size={16} />
+                        ) : (
+                          <Trash2 size={16} />
+                        )}
+                      </Button>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-medium text-sm truncate" title={story.title}>
+                    <div className="p-4">
+                      <h3 className="font-medium truncate" title={story.title}>
                         {story.title}
                       </h3>
-                      <p className="text-xs text-muted-foreground">
-                        {story.category || "Uncategorized"}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(story.created_at || "").toLocaleDateString()}
-                      </p>
+                      <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+                        <span className="bg-primary/10 px-2 py-1 rounded">
+                          {story.category || "Uncategorized"}
+                        </span>
+                        <span className="flex-1 text-right">
+                          {new Date(story.created_at || "").toLocaleDateString()}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => handleDeleteAudioStory(story.id)}
-                    disabled={deleting === story.id}
-                    className="ml-2 px-2"
-                  >
-                    {deleting === story.id ? (
-                      <Loader2 className="animate-spin" size={16} />
-                    ) : (
-                      <Trash2 size={16} />
-                    )}
-                  </Button>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
