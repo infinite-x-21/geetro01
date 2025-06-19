@@ -29,8 +29,8 @@ export default function StoriesPage() {
   const [refreshFeed, setRefreshFeed] = useState(0);
 
   return (
-    <div className="bg-background min-h-screen relative">
-      {/* Background pattern overlay */}
+     <div className="bg-background min-h-screen relative pb-20">
+      {/* Background pattern overlay - adding bottom padding for audio player */}
       <div className="absolute inset-0 opacity-20">
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-amber-500/5 to-transparent"></div>
       </div>

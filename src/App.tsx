@@ -18,6 +18,7 @@ import LikedAudiosPage from "./pages/LikedAudiosPage";
 import CategoryAudiosPage from "./pages/CategoryAudiosPage";
 import UserProfilePage from "./pages/UserProfile";
 import ShufflePage from "./pages/ShufflePage";
+import PlaylistsPage from "./pages/Playlists";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -37,6 +38,7 @@ const App = () => (
               <Route path="/stories/:id" element={<StoryPlayer />} />
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/profile/:userId" element={<UserProfilePage />} />
+              <Route path="/playlists" element={<PlaylistsPage />} />
               <Route path="/liked" element={<LikedAudiosPage />} />
               <Route path="/category/music" element={<CategoryAudiosPage category="music" />} />
               <Route path="/category/podcast" element={<CategoryAudiosPage category="podcast" />} />              <Route path="/category/stories" element={<CategoryAudiosPage category="stories" />} />

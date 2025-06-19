@@ -11,6 +11,7 @@ import HeroSection from "@/components/HeroSection";
 import AudioStoryUpload from "@/components/AudioStoryUpload";
 import { Dialog } from "@/components/ui/dialog";
 import HorizontalAudioScroll from "@/components/HorizontalAudioScroll";
+import React, { useRef } from 'react';
 
 // Enhanced SongCard component for better playlist-like appearance
 function SongCard({ 
@@ -82,6 +83,7 @@ export default function HomePage() {
   const [trendingAudios, setTrendingAudios] = useState<any[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
 const [showUserSearch, setShowUserSearch] = useState(false);
+  const trendingScrollRef = useRef<HTMLDivElement>(null);
   // Get current user ID for personalized liked audios
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -158,8 +160,8 @@ const [showUserSearch, setShowUserSearch] = useState(false);
       .order('likes', { ascending: false })
       .order('created_at', { ascending: false })
       .then(({ data, error }) => {
-        // Fallback: if likes column missing, fetch without likes
-        if (error && error.message.includes('likes')) {
+        if (error && error.message && error.message.includes('likes')) {
+          // Fallback: fetch without likes column
           supabase
             .from('audio_stories')
             .select('id, title, audio_url, cover_image_url, category, created_at, uploaded_by')
@@ -372,76 +374,96 @@ const [showUserSearch, setShowUserSearch] = useState(false);
                     </div>
                     <div className="relative">
                       {/* Gradient Overlays for scroll indication */}
-                      <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-background to-transparent z-10"></div>
-                      <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-background to-transparent z-10"></div>
+                      <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-background to-transparent z-10 pointer-events-none"></div>
+                      <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-background to-transparent z-10 pointer-events-none"></div>
                       
-                      <div className="flex gap-4 overflow-x-auto pb-4 px-2 -mx-2 scroll-smooth scrollbar-thin scrollbar-track-amber-900/20 scrollbar-thumb-amber-500/20 hover:scrollbar-thumb-amber-500/40">
+                      {/* Attractive right scroll button */}
+                      <button
+                        className="absolute right-4 top-1/2 -translate-y-1/2 z-20 bg-black/70 hover:bg-amber-500 text-white rounded-full w-12 h-12 flex items-center justify-center shadow-lg transition-all duration-200 border-2 border-white/10 hover:scale-110"
+                        style={{ boxShadow: '0 4px 24px #0006' }}
+                        onClick={() => {
+                          if (trendingScrollRef.current) {
+                            trendingScrollRef.current.scrollBy({ left: 320, behavior: 'smooth' });
+                          }
+                        }}
+                        aria-label="Scroll right"
+                      >
+                        <ChevronRight size={36} />
+                      </button>
+                      <div
+                        ref={trendingScrollRef}
+                        className="flex gap-4 overflow-x-auto pb-4 px-2 -mx-2 scroll-smooth no-scrollbar"
+                        style={{ scrollbarWidth: 'none' }}
+                      >
                         {trendingAudios.length === 0 ? (
                           <div className="text-muted-foreground text-lg font-semibold px-8 py-12">No audios found.</div>
                         ) : (
-                          trendingAudios.map(audio => (
-                            <div 
-                              key={audio.id} 
+                          trendingAudios.map((audio, idx) => (
+                            <div
+                              key={audio.id}
                               className="group relative flex-shrink-0 w-[280px] md:w-[320px] bg-gradient-to-br from-amber-500/5 via-orange-500/5 to-amber-500/5 rounded-xl overflow-hidden border border-amber-500/10 hover:border-amber-500/30 transition-all duration-300"
                             >
-                              {/* Background Glow Effect */}
-                              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                <div className="absolute inset-0 bg-gradient-to-br from-amber-500/20 via-orange-500/10 to-amber-500/5 blur-xl"></div>
-                              </div>
-                              {/* Content Container */}
-                              <div className="relative p-4 flex gap-4">
-                                {/* Cover Art */}
-                                <div className="relative flex-shrink-0 w-24 h-24 md:w-28 md:h-28 rounded-lg overflow-hidden">
-                                  {audio.cover_image_url ? (
-                                    <img 
-                                      src={audio.cover_image_url} 
-                                      alt={audio.title} 
-                                      className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
-                                    />
-                                  ) : (
-                                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-amber-500/20 to-orange-500/20">
-                                      <Music className="text-amber-400" size={32} />
-                                    </div>
-                                  )}
-                                  {/* Play Button Overlay */}
-                                  <div 
-                                    className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-all duration-300 cursor-pointer"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleSongPlay(audio);
-                                    }}
-                                  >
-                                    <div className="w-12 h-12 rounded-full bg-amber-500/90 flex items-center justify-center transform scale-75 group-hover:scale-100 transition-all duration-300">
-                                      <Play size={20} className="text-white ml-1" />
-                                    </div>
+                              {/* Cover Art with Play Button on Hover */}
+                              <div className="relative flex-shrink-0 w-24 h-24 md:w-28 md:h-28 rounded-lg overflow-hidden">
+                                {audio.cover_image_url ? (
+                                  <img
+                                    src={audio.cover_image_url}
+                                    alt={audio.title}
+                                    className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-amber-500/20 to-orange-500/20">
+                                    <Music className="text-amber-400" size={32} />
                                   </div>
+                                )}
+                                {/* Play Button Overlay on Hover */}
+                                <button
+                                  className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-all duration-300 cursor-pointer"
+                                  onClick={() => {
+                                    playTrack({
+                                      id: audio.id,
+                                      audioUrl: audio.audio_url,
+                                      coverUrl: audio.cover_image_url,
+                                      title: audio.title,
+                                      artist: audio.artist_name || "Unknown Artist"
+                                    }, trendingAudios.map(a => ({
+                                      id: a.id,
+                                      audioUrl: a.audio_url,
+                                      coverUrl: a.cover_image_url,
+                                      title: a.title,
+                                      artist: a.artist_name || "Unknown Artist"
+                                    })));
+                                  }}
+                                  aria-label="Play"
+                                >
+                                  <Play size={36} className="text-white" />
+                                </button>
+                              </div>
+                              
+                              {/* Info Section */}
+                              <div className="flex flex-col justify-between flex-grow min-w-0">
+                                <div>
+                                  <h3 className="font-semibold text-lg md:text-xl text-amber-100 truncate mb-1" title={audio.title}>
+                                    {audio.title}
+                                  </h3>
+                                  <p className="text-sm text-amber-200/60 truncate" title={audio.artist_name}>
+                                    {audio.artist_name}
+                                  </p>
                                 </div>
                                 
-                                {/* Info Section */}
-                                <div className="flex flex-col justify-between flex-grow min-w-0">
-                                  <div>
-                                    <h3 className="font-semibold text-lg md:text-xl text-amber-100 truncate mb-1" title={audio.title}>
-                                      {audio.title}
-                                    </h3>
-                                    <p className="text-sm text-amber-200/60 truncate" title={audio.artist_name}>
-                                      {audio.artist_name}
-                                    </p>
-                                  </div>
-                                  
-                                  <div className="flex items-center justify-between mt-2">
-                                    <div className="flex items-center gap-2">
-                                      <Heart 
-                                        size={16} 
-                                        className="text-amber-400/70 group-hover:text-amber-400 transition-colors" 
-                                      />
-                                      <span className="text-xs text-amber-300/70">
-                                        {audio.likes || 0}
-                                      </span>
-                                    </div>
-                                    <span className="text-xs text-amber-300/50">
-                                      {new Date(audio.created_at).toLocaleDateString()}
+                                <div className="flex items-center justify-between mt-2">
+                                  <div className="flex items-center gap-2">
+                                    <Heart 
+                                      size={16} 
+                                      className="text-amber-400/70 group-hover:text-amber-400 transition-colors" 
+                                    />
+                                    <span className="text-xs text-amber-300/70">
+                                      {audio.likes || 0}
                                     </span>
                                   </div>
+                                  <span className="text-xs text-amber-300/50">
+                                    {new Date(audio.created_at).toLocaleDateString()}
+                                  </span>
                                 </div>
                               </div>
                             </div>

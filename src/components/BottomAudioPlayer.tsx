@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Play, Pause, SkipForward, SkipBack, RotateCcw, RotateCw, Heart } from 'lucide-react';
+import { Play, Pause, SkipForward, SkipBack, List, RotateCcw, RotateCw, Heart } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 import { useAudioPlayer } from '@/contexts/AudioPlayerContext';
-import { Button } from './ui/button';
+import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from "@/integrations/supabase/client";
 import NowPlayingModal from './NowPlayingModal';
 
@@ -21,6 +22,7 @@ export const BottomAudioPlayer: React.FC = () => {
     skipBack,
     skipForward,
   } = useAudioPlayer();
+  const navigate = useNavigate();
 
   // Like logic using localStorage
   const [liked, setLiked] = useState(false);
@@ -108,6 +110,11 @@ export const BottomAudioPlayer: React.FC = () => {
               <p className="text-xs text-muted-foreground truncate">
                 {currentTrack.artist}
               </p>
+              {playlist.length > 1 && (
+              <p className="text-xs text-muted-foreground">
+                {currentTrackIndex + 1} of {playlist.length}
+              </p>
+            )}
             </div>
           </div>
 
@@ -169,6 +176,15 @@ export const BottomAudioPlayer: React.FC = () => {
             >
               <Heart size={18} fill={liked ? "currentColor" : "none"} />
             </Button>
+          {/* Playlist button */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate('/playlists')}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <List size={18} />
+          </Button>
           </div>
 
           {/* Progress Bar */}

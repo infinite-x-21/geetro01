@@ -34,6 +34,54 @@ export type Database = {
         }
         Relationships: []
       }
+      playlists: {
+        Row: {
+          id: string
+          user_id: string
+          name: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          name: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          name?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      playlist_items: {
+        Row: {
+          id: string
+          playlist_id: string
+          audio_story_id: string
+          position: number
+          added_at: string
+        }
+        Insert: {
+          id?: string
+          playlist_id: string
+          audio_story_id: string
+          position?: number
+          added_at?: string
+        }
+        Update: {
+          id?: string
+          playlist_id?: string
+          audio_story_id?: string
+          position?: number
+          added_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           id: string
