@@ -7,6 +7,7 @@ import MusicPlayer from "@/components/MusicPlayer";
 import { useAudioPlayer } from "@/contexts/AudioPlayerContext";
 import { ModernMusicPlayerCard } from "@/components/ModernMusicPlayerCard";
 import HorizontalAudioScroll from "@/components/HorizontalAudioScroll";
+import { AuthPromptModal } from "@/components/AuthPromptModal";
 
 type AudioStoryRow = Database["public"]["Tables"]["audio_stories"]["Row"];
 
@@ -19,6 +20,15 @@ export default function StoryPlayer() {
   const [showSpinner, setShowSpinner] = useState(false);
   const [artistAudios, setArtistAudios] = useState<AudioStoryRow[]>([]);
   const [recommended, setRecommended] = useState<AudioStoryRow[]>([]);
+  const [showAuthPrompt, setShowAuthPrompt] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  // Check authentication status
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setIsAuthenticated(!!user);
+    });
+  }, []);
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -27,6 +37,17 @@ export default function StoryPlayer() {
       setLoading(true);
       setShowSpinner(false);
       timer = setTimeout(() => setShowSpinner(true), 400);
+
+      // Check authentication first
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setShowAuthPrompt(true);
+        setLoading(false);
+        clearTimeout(timer);
+        setShowSpinner(false);
+        return;
+      }
+
       const { data, error } = await supabase
         .from("audio_stories")
         .select("*")
@@ -93,55 +114,64 @@ export default function StoryPlayer() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-start w-full bg-background pb-10 relative">
-      {/* Back Button */}
-      <div className="w-full flex items-center sticky z-30 top-0 bg-transparent py-4 px-4">
-        <button
-          className="hover-scale rounded-lg bg-card px-3 py-2 flex items-center gap-2 text-primary font-semibold shadow border border-primary/30"
-          onClick={() => navigate(-1)}
-        >
-          <ArrowLeft size={22} />
-          <span>Back</span>
-        </button>
-      </div>
-      <div className="flex-1 flex flex-col items-center justify-center w-full min-h-[70vh]">
-        {loading && showSpinner ? (
-          <div className="mt-12 flex flex-col items-center justify-center">
-            <Loader2 className="animate-spin mb-2" size={32} />
-            <div className="text-sm text-muted-foreground">Loading audio...</div>
-          </div>
-        ) : !story ? (
-          <div className="mt-12 text-lg text-muted-foreground">Story not found.</div>
-        ) : (
-          <>
-            <div className="flex flex-col items-center justify-center w-full">
-              <ModernMusicPlayerCard track={story} />
+    <>
+      <div className="min-h-screen flex flex-col items-center justify-start w-full bg-background pb-10 relative">
+        {/* Back Button */}
+        <div className="w-full flex items-center sticky z-30 top-0 bg-transparent py-4 px-4">
+          <button
+            className="hover-scale rounded-lg bg-card px-3 py-2 flex items-center gap-2 text-primary font-semibold shadow border border-primary/30"
+            onClick={() => navigate(-1)}
+          >
+            <ArrowLeft size={22} />
+            <span>Back</span>
+          </button>
+        </div>
+        <div className="flex-1 flex flex-col items-center justify-center w-full min-h-[70vh]">
+          {loading && showSpinner ? (
+            <div className="mt-12 flex flex-col items-center justify-center">
+              <Loader2 className="animate-spin mb-2" size={32} />
+              <div className="text-sm text-muted-foreground">Loading audio...</div>
             </div>
-            {/* More from this artist */}
-            {artistAudios.length > 0 && (
-              <div className="w-full max-w-5xl mx-auto mt-10">
-                <h3 className="text-xl font-bold mb-3 text-amber-300">More from this artist</h3>
-                <HorizontalAudioScroll
-                  title="More from this artist"
-                  items={artistAudios.map(mapToAudioItem)}
-                  onItemClick={item => navigate(`/stories/${item.id}`)}
-                />
+          ) : !story ? (
+            <div className="mt-12 text-lg text-muted-foreground">Story not found.</div>
+          ) : (
+            <>
+              <div className="flex flex-col items-center justify-center w-full">
+                <ModernMusicPlayerCard track={story} />
               </div>
-            )}
-            {/* Recommended section */}
-            {recommended.length > 0 && (
-              <div className="w-full max-w-5xl mx-auto mt-10">
-                <h3 className="text-xl font-bold mb-3 text-amber-300">Recommended</h3>
-                <HorizontalAudioScroll
-                  title="Recommended"
-                  items={recommended.map(mapToAudioItem)}
-                  onItemClick={item => navigate(`/stories/${item.id}`)}
-                />
-              </div>
-            )}
-          </>
-        )}
+              {/* More from this artist */}
+              {artistAudios.length > 0 && (
+                <div className="w-full max-w-5xl mx-auto mt-10">
+                  <h3 className="text-xl font-bold mb-3 text-amber-300">More from this artist</h3>
+                  <HorizontalAudioScroll
+                    title="More from this artist"
+                    items={artistAudios.map(mapToAudioItem)}
+                    onItemClick={item => navigate(`/stories/${item.id}`)}
+                  />
+                </div>
+              )}
+              {/* Recommended section */}
+              {recommended.length > 0 && (
+                <div className="w-full max-w-5xl mx-auto mt-10">
+                  <h3 className="text-xl font-bold mb-3 text-amber-300">Recommended</h3>
+                  <HorizontalAudioScroll
+                    title="Recommended"
+                    items={recommended.map(mapToAudioItem)}
+                    onItemClick={item => navigate(`/stories/${item.id}`)}
+                  />
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </div>
-    </div>
+      <AuthPromptModal 
+        isOpen={showAuthPrompt} 
+        onClose={() => {
+          setShowAuthPrompt(false);
+          navigate(-1);
+        }} 
+      />
+    </>
   );
 }
