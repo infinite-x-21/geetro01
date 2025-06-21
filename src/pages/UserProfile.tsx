@@ -4,12 +4,13 @@ import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, UserPlus, UserMinus, Users, Music } from "lucide-react";
+import { ArrowLeft, Users, Music, MessageCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAudioPlayer } from "@/contexts/AudioPlayerContext";
 import FollowersList from "@/components/FollowerLists";
 import type { Database } from "@/integrations/supabase/types";
-
+import FriendRequestButton from "@/components/FriendRequestButton";
+import { useFriendshipStatus } from "@/hooks/useFriendshipStatus";
 type AudioStoryRow = Database["public"]["Tables"]["audio_stories"]["Row"];
 
 interface UserProfile {
@@ -38,11 +39,10 @@ export default function UserProfilePage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [stats, setStats] = useState<UserStats>({ followers_count: 0, following_count: 0 });
   const [audioStories, setAudioStories] = useState<AudioStoryRow[]>([]);
-  const [isFollowing, setIsFollowing] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [followLoading, setFollowLoading] = useState(false);
   const { toast } = useToast();
   const { playTrack } = useAudioPlayer();
+  const { status: friendshipStatus, refreshStatus } = useFriendshipStatus(currentUserId, userId || "");
 
   useEffect(() => {
     const loadUserProfile = async () => {
@@ -80,17 +80,7 @@ export default function UserProfilePage() {
           });
         }
 
-        // Check if current user is following this user
-        if (user?.id) {
-          const { data: followData } = await supabase
-            .from("followers")
-            .select("id")
-            .eq("follower_id", user.id)
-            .eq("following_id", userId)
-            .maybeSingle();
-          
-          setIsFollowing(!!followData);
-        }
+      
 
         // Fetch user's audio stories
         const { data: audioData, error: audioError } = await supabase
@@ -118,45 +108,6 @@ export default function UserProfilePage() {
     loadUserProfile();
   }, [userId, navigate, toast]);
 
-  const handleFollow = async () => {
-    if (!currentUserId || !userId || followLoading) return;
-
-    setFollowLoading(true);
-    try {
-      if (isFollowing) {
-        const { error } = await supabase
-          .from("followers")
-          .delete()
-          .eq("follower_id", currentUserId)
-          .eq("following_id", userId);
-
-        if (error) throw error;
-        setIsFollowing(false);
-        setStats(prev => ({ ...prev, followers_count: Math.max(prev.followers_count - 1, 0) }));
-        toast({ title: "Successfully unfollowed user!" });
-      } else {
-        const { error } = await supabase
-          .from("followers")
-          .insert({
-            follower_id: currentUserId,
-            following_id: userId,
-          });
-
-        if (error) throw error;
-        setIsFollowing(true);
-        setStats(prev => ({ ...prev, followers_count: prev.followers_count + 1 }));
-        toast({ title: "Successfully followed user!" });
-      }
-    } catch (error: any) {
-      toast({
-        title: isFollowing ? "Failed to unfollow" : "Failed to follow",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setFollowLoading(false);
-    }
-  };
 
   const handlePlayStory = (story: AudioStoryRow) => {
     const track = {
@@ -176,6 +127,12 @@ export default function UserProfilePage() {
     }));
     
     playTrack(track, playlist);
+      };
+
+  const startChat = () => {
+    if (userId) {
+      navigate(`/chat?user=${userId}`);
+    }
   };
 
   if (loading) {
@@ -236,26 +193,23 @@ export default function UserProfilePage() {
               </div>
               
               {currentUserId && (
-                <Button
-                  variant={isFollowing ? "destructive" : "default"}
-                  onClick={handleFollow}
-                  disabled={followLoading}
-                  className="w-full md:w-auto"
-                >
-                  {followLoading ? (
-                    "Loading..."
-                  ) : isFollowing ? (
-                    <>
-                      <UserMinus size={16} className="mr-2" />
-                      Unfollow
-                    </>
-                  ) : (
-                    <>
-                      <UserPlus size={16} className="mr-2" />
-                      Follow
-                    </>
+                   <div className="flex gap-2 justify-center md:justify-start">
+                  <FriendRequestButton
+                    targetUserId={userId!}
+                    currentUserId={currentUserId}
+                    friendshipStatus={friendshipStatus}
+                    onStatusChange={refreshStatus}
+                  />
+                  {friendshipStatus === "friends" && (
+                    <Button
+                      onClick={startChat}
+                      variant="outline"
+                    >
+                      <MessageCircle size={16} className="mr-2" />
+                      Message
+                    </Button>
                   )}
-                </Button>
+                </div>
               )}
             </div>
           </div>

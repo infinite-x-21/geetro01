@@ -21,7 +21,7 @@ import ShufflePage from "./pages/ShufflePage";
 import PlaylistsPage from "./pages/Playlists";
 import ChatPage from "./pages/Chat";
 const queryClient = new QueryClient();
-
+import FriendsPage from "./pages/Friends";
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -41,6 +41,8 @@ const App = () => (
               <Route path="/profile/:userId" element={<UserProfilePage />} />
               <Route path="/playlists" element={<PlaylistsPage />} />
               <Route path="/chat" element={<ChatPage />} />
+              <Route path="/friends" element={<FriendsPage />} />
+
               <Route path="/liked" element={<LikedAudiosPage />} />
               <Route path="/category/music" element={<CategoryAudiosPage category="music" />} />
               <Route path="/category/podcast" element={<CategoryAudiosPage category="podcast" />} />              <Route path="/category/stories" element={<CategoryAudiosPage category="stories" />} />
