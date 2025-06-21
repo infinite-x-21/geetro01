@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { Music } from "lucide-react";
 import { Eye, EyeOff } from "lucide-react";
+import { WelcomeAstronautModal } from "@/components/WelcomeAstronautModal";
 
 // Floating, interactive icons (music left side, others as before)
 function FloatingIcons() {
@@ -57,11 +58,14 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [signupVisitCount, setSignupVisitCount] = useState(0);
+  const [showWelcome, setShowWelcome] = useState(false);
+  const [pendingRedirect, setPendingRedirect] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
   // Check for authenticated user
   useEffect(() => {
+    if (showWelcome) return; // Don't auto-redirect while welcome modal is open
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
         navigate("/home");
@@ -69,7 +73,7 @@ export default function AuthPage() {
     });
 
     supabase.auth.getUser().then(({ data }) => {
-      if (data.user) {
+      if (data.user && !showWelcome) {
         navigate("/home");
       }
     });
@@ -77,7 +81,7 @@ export default function AuthPage() {
     return () => {
       subscription.unsubscribe();
     };
-  }, [navigate]);
+  }, [navigate, showWelcome]);
 
   // Track sign up page visits
   useEffect(() => {
@@ -108,6 +112,9 @@ export default function AuthPage() {
           title: "Check your email!", 
           description: "A confirmation link was sent to your email address." 
         });
+        // After successful signup, redirect with welcome hash
+        window.location.href = "/home#welcome";
+        return;
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({ 
           email, 
@@ -126,8 +133,12 @@ export default function AuthPage() {
           }
         }
 
-        toast({ title: "Welcome back!" });
-        navigate("/home");
+        setShowWelcome(true); // Show astronaut welcome modal
+        setTimeout(() => {
+          setShowWelcome(false);
+          window.location.href = "/home#welcome";
+        }, 2500);
+        return;
       }
     } catch (error: any) {
       toast({ 
@@ -138,6 +149,20 @@ export default function AuthPage() {
     } finally {
       setLoading(false);
     }
+  }
+  async function handleGoogleSignIn() {
+    setLoading(true);
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/stories`
+      }
+    });
+    
+    if (error) {
+      toast({ title: "Google sign-in error", description: error.message, variant: "destructive" });
+    }
+    setLoading(false);
   }
 
   return (
@@ -161,8 +186,10 @@ export default function AuthPage() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            
             {mode === "signup" && (
               <div className="space-y-2">
+                
                 <Input
                   type="text"
                   placeholder="Your name"
@@ -221,6 +248,18 @@ export default function AuthPage() {
             </Button>
           </form>
 
+          <div className="mt-4 flex flex-col gap-2">
+            <Button
+              type="button"
+              onClick={handleGoogleSignIn}
+              className="w-full flex items-center justify-center gap-2 bg-white text-zinc-800 border border-zinc-200 shadow hover:bg-zinc-50 font-semibold"
+              disabled={loading}
+            >
+              <svg className="w-5 h-5" viewBox="0 0 48 48"><g><path fill="#4285F4" d="M24 9.5c3.54 0 6.7 1.22 9.19 3.22l6.85-6.85C36.13 2.7 30.45 0 24 0 14.82 0 6.73 5.8 2.69 14.09l7.98 6.2C12.13 13.13 17.57 9.5 24 9.5z"/><path fill="#34A853" d="M46.1 24.55c0-1.64-.15-3.22-.42-4.74H24v9.01h12.42c-.54 2.9-2.18 5.36-4.65 7.01l7.2 5.6C43.98 37.13 46.1 31.3 46.1 24.55z"/><path fill="#FBBC05" d="M10.67 28.29c-1.13-3.36-1.13-6.97 0-10.33l-7.98-6.2C.7 15.27 0 19.51 0 24s.7 8.73 2.69 12.24l7.98-6.2z"/><path fill="#EA4335" d="M24 48c6.45 0 12.13-2.13 16.19-5.81l-7.2-5.6c-2.01 1.35-4.59 2.16-8.99 2.16-6.43 0-11.87-3.63-14.33-8.79l-7.98 6.2C6.73 42.2 14.82 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></g></svg>
+              {loading ? "Signing in..." : "Continue with Google"}
+            </Button>
+          </div>
+
           <div className="mt-6 text-center">
             <button
               onClick={() => setMode(mode === "login" ? "signup" : "login")}
@@ -238,9 +277,11 @@ export default function AuthPage() {
       <div className="absolute bottom-32 right-36 z-40 pointer-events-none">
         <div className="bg-white/90 text-zinc-800 text-xs px-3 py-1 rounded-full shadow border border-amber-200 animate-fade-in font-semibold">
           {mode === "signup"
-            ? signupVisitCount > 1
-              ? "Bar Bar Nahi Bolunga, Account Create Karo Chalo"
-              : "Hehe!, Register karnese pehle sign in kar rahe the"
+            ? signupVisitCount > 2
+              ? "Jaldi Accout Create Karo Na"
+              : signupVisitCount > 1
+                ? "Bar Bar Nahi Bolunga, Account Create Karo Chalo"
+                : "Hehe!, Register karnese pehle sign in kar rahe the"
             : showPassword
               ? "jaldise password dekh leta hu"
               : "arrey yar !"}
@@ -266,6 +307,7 @@ export default function AuthPage() {
           </svg>
         </div>
       </div>
+      <WelcomeAstronautModal open={showWelcome} onOpenChange={setShowWelcome} />
     </div>
   );
 }

@@ -39,7 +39,91 @@ export type Database = {
         }
         Relationships: []
       }
-            playlist_items: {
+      direct_messages: {
+        Row: {
+          content: string
+          created_at: string
+          expires_at: string
+          id: string
+          recipient_id: string
+          sender_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          recipient_id: string
+          sender_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          recipient_id?: string
+          sender_id?: string
+        }
+        Relationships: []
+      }
+      followers: {
+        Row: {
+          created_at: string
+          follower_id: string
+          following_id: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          follower_id: string
+          following_id: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          follower_id?: string
+          following_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "followers_follower_id_fkey"
+            columns: ["follower_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "followers_following_id_fkey"
+            columns: ["following_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      listening_sessions: {
+        Row: {
+          created_at: string
+          expires_at: string
+          host_id: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          host_id: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          host_id?: string
+          id?: string
+        }
+        Relationships: []
+      }
+      playlist_items: {
         Row: {
           added_at: string
           audio_story_id: string
@@ -123,12 +207,51 @@ export type Database = {
         }
         Relationships: []
       }
+      session_participants: {
+        Row: {
+          id: string
+          joined_at: string
+          session_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          joined_at?: string
+          session_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          joined_at?: string
+          session_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_participants_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "listening_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      cleanup_expired_messages: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      get_user_stats: {
+        Args: { user_id: string }
+        Returns: {
+          followers_count: number
+          following_count: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

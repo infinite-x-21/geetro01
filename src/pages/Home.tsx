@@ -12,6 +12,7 @@ import AudioStoryUpload from "@/components/AudioStoryUpload";
 import { Dialog } from "@/components/ui/dialog";
 import HorizontalAudioScroll from "@/components/HorizontalAudioScroll";
 import React, { useRef } from 'react';
+import WelcomeSection from "@/components/WelcomeSection";
 
 // Enhanced SongCard component for better playlist-like appearance
 function SongCard({ 
@@ -82,7 +83,8 @@ export default function HomePage() {
   const [uploadOpen, setUploadOpen] = useState(false);
   const [trendingAudios, setTrendingAudios] = useState<any[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
-const [showUserSearch, setShowUserSearch] = useState(false);
+  const [showUserSearch, setShowUserSearch] = useState(false);
+  const [showWelcomeSection, setShowWelcomeSection] = useState(false);
   const trendingScrollRef = useRef<HTMLDivElement>(null);
   // Get current user ID for personalized liked audios
   useEffect(() => {
@@ -215,8 +217,19 @@ const [showUserSearch, setShowUserSearch] = useState(false);
     playTrack(track);
   };
 
+  useEffect(() => {
+    // Show welcome section if redirected from AuthPage after sign in/up
+    if (window.location.hash === "#welcome") {
+      setShowWelcomeSection(true);
+      // Remove hash so it doesn't persist
+      window.location.hash = "";
+      setTimeout(() => setShowWelcomeSection(false), 3500);
+    }
+  }, []);
+
   return (
-    <div className="min-h-screen flex flex-col items-center justify-start w-full bg-background pb-20 relative">
+    <div className="min-h-screen w-full bg-background flex flex-col">
+      {showWelcomeSection && <WelcomeSection />}
       {/* Decorative background image */}
       <img
         src="/images/geetro-x.jpeg"
