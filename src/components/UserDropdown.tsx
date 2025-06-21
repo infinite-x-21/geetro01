@@ -62,8 +62,8 @@ export default function UserDropdown() {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon" className="rounded-full relative group">
-          <span className="absolute inset-0 z-0 rounded-full pointer-events-none group-hover:blur-sm group-hover:opacity-80 transition-all duration-300" style={{boxShadow: '0 0 16px 4px #3b82f6, 0 0 32px 8px #60a5fa'}}></span>
-          <Avatar className="h-8 w-8 relative z-10 ring-2 ring-blue-400 ring-offset-2 ring-offset-black shadow-lg">
+          <span className="absolute inset-0 z-0 rounded-full pointer-events-none group-hover:blur-sm group-hover:opacity-80 transition-all duration-300" style={{boxShadow: '0 0 16px 4px #f59e42, 0 0 32px 8px #fbbf24'}}></span>
+          <Avatar className="h-8 w-8 relative z-10 ring-2 ring-orange-400 ring-offset-2 ring-offset-black shadow-lg">
             {profile.avatar_url ? (
               <AvatarImage src={profile.avatar_url} alt={profile.name || "User"} />
             ) : (
