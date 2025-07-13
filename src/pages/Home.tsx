@@ -3,7 +3,7 @@ import AudioStoryFeed from "@/components/AudioStoryFeed";
 import Navbar from "@/components/Navbar";
 import ArtistProfilesList from "@/components/ArtistProfilesList";
 import { supabase } from "@/integrations/supabase/client";
-import { Play, Clock, Music, Headphones, Mic, Heart, Flame, ChevronRight } from "lucide-react";
+import { Play, Clock, Music, Headphones, Mic, Video, Heart, Flame, ChevronRight } from "lucide-react";
 import { useAudioPlayer } from "@/contexts/AudioPlayerContext";
 import { useNavigate } from 'react-router-dom';
 import UserSearch from "@/components/UserSearch";
@@ -13,7 +13,8 @@ import { Dialog } from "@/components/ui/dialog";
 import HorizontalAudioScroll from "@/components/HorizontalAudioScroll";
 import React, { useRef } from 'react';
 import WelcomeSection from "@/components/WelcomeSection";
-
+import VideoStoryFeed from "@/components/VideoStoryFeed";
+import { Link } from "react-router-dom";
 // Enhanced SongCard component for better playlist-like appearance
 function SongCard({ 
   title, 
@@ -576,6 +577,33 @@ export default function HomePage() {
                             )}
                           </div>
                         )}
+                              </div>
+                </div>
+              )}
+
+              {/* Videos section */}
+              {active === "all" && (
+                <div className="mt-12">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-full bg-amber-500/20 audio-glow">
+                        <Video className="text-amber-400" size={24} />
+                      </div>
+                      <div>
+                        <div className="text-xl font-bold text-amber-200">Latest Videos</div>
+                        <p className="text-sm text-amber-100/70">Discover amazing video content from creators</p>
+                      </div>
+                    </div>
+                    <Link 
+                      to="/videos" 
+                      className="text-sm text-amber-400 hover:text-amber-300 transition-colors font-medium"
+                    >
+                      See All →
+                    </Link>
+                  </div>
+                  
+                  <div className="w-full rounded-lg border border-amber-500/30 bg-gradient-to-br from-amber-500/10 to-orange-500/5 backdrop-blur-sm px-6 py-6 shadow-neon">
+                    <VideoStoryFeed />
                       </div>
                     </div>
                   )}

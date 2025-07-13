@@ -18,6 +18,7 @@ export type Database = {
           id: string
           title: string
           uploaded_by: string
+          likes: number
         }
         Insert: {
           audio_url: string
@@ -27,6 +28,7 @@ export type Database = {
           id?: string
           title: string
           uploaded_by: string
+          likes?: number
         }
         Update: {
           audio_url?: string
@@ -36,152 +38,84 @@ export type Database = {
           id?: string
           title?: string
           uploaded_by?: string
+          likes?: number
         }
         Relationships: []
       }
-      direct_messages: {
+      video_stories: {
         Row: {
-          content: string
-          created_at: string
-          expires_at: string
           id: string
-          recipient_id: string
-          sender_id: string
+          title: string
+          video_url: string | null
+          wallpaper_url: string | null
+          youtube_url: string | null
+          category: string | null
+          uploaded_by: string
+          created_at: string
+          likes: number
+          description: string | null
+          duration: number | null
+          views: number
         }
         Insert: {
-          content: string
-          created_at?: string
-          expires_at: string
           id?: string
-          recipient_id: string
-          sender_id: string
+          title: string
+          video_url?: string | null
+          wallpaper_url?: string | null
+          youtube_url?: string | null
+          category?: string | null
+          uploaded_by: string
+          created_at?: string
+          likes?: number
+          description?: string | null
+          duration?: number | null
+          views?: number
         }
         Update: {
-          content?: string
-          created_at?: string
-          expires_at?: string
           id?: string
-          recipient_id?: string
-          sender_id?: string
-        }
-        Relationships: []
-      }
-      followers: {
-        Row: {
-          created_at: string
-          follower_id: string
-          following_id: string
-          id: string
-        }
-        Insert: {
+          title?: string
+          video_url?: string | null
+          wallpaper_url?: string | null
+          youtube_url?: string | null
+          category?: string | null
+          uploaded_by?: string
           created_at?: string
-          follower_id: string
-          following_id: string
-          id?: string
-        }
-        Update: {
-          created_at?: string
-          follower_id?: string
-          following_id?: string
-          id?: string
+          likes?: number
+          description?: string | null
+          duration?: number | null
+          views?: number
         }
         Relationships: [
           {
-            foreignKeyName: "followers_follower_id_fkey"
-            columns: ["follower_id"]
+            foreignKeyName: "video_stories_uploaded_by_fkey"
+            columns: ["uploaded_by"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "users"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "followers_following_id_fkey"
-            columns: ["following_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
+          }
         ]
       }
-            friend_requests: {
+      playlists: {
         Row: {
           created_at: string
           id: string
-          receiver_id: string
-          sender_id: string
-          status: string
+          name: string
           updated_at: string
+          user_id: string
         }
         Insert: {
           created_at?: string
           id?: string
-          receiver_id: string
-          sender_id: string
-          status?: string
+          name: string
           updated_at?: string
+          user_id: string
         }
         Update: {
           created_at?: string
           id?: string
-          receiver_id?: string
-          sender_id?: string
-          status?: string
+          name?: string
           updated_at?: string
-        }
-  Relationships: [
-          {
-            foreignKeyName: "friend_requests_receiver_id_fkey"
-            columns: ["receiver_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "friend_requests_sender_id_fkey"
-            columns: ["sender_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]      }
-      friendships: {
-        Row: {
-          created_at: string
-          id: string
-          user1_id: string
-          user2_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          user1_id: string
-          user2_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          user1_id?: string
-          user2_id?: string
-        }
-        Relationships: []
-      }
-      listening_sessions: {
-        Row: {
-          created_at: string
-          expires_at: string
-          host_id: string
-          id: string
-        }
-        Insert: {
-          created_at?: string
-          expires_at: string
-          host_id: string
-          id?: string
-        }
-        Update: {
-          created_at?: string
-          expires_at?: string
-          host_id?: string
-          id?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -221,32 +155,8 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "playlists"
             referencedColumns: ["id"]
-          },
+          }
         ]
-      }
-      playlists: {
-        Row: {
-          created_at: string
-          id: string
-          name: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          name?: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          name?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
       }
       profiles: {
         Row: {
@@ -269,33 +179,40 @@ export type Database = {
         }
         Relationships: []
       }
-      session_participants: {
+      followers: {
         Row: {
+          created_at: string
+          follower_id: string
+          following_id: string
           id: string
-          joined_at: string
-          session_id: string
-          user_id: string
         }
         Insert: {
+          created_at?: string
+          follower_id: string
+          following_id: string
           id?: string
-          joined_at?: string
-          session_id: string
-          user_id: string
         }
         Update: {
+          created_at?: string
+          follower_id?: string
+          following_id?: string
           id?: string
-          joined_at?: string
-          session_id?: string
-          user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "session_participants_session_id_fkey"
-            columns: ["session_id"]
+            foreignKeyName: "followers_follower_id_fkey"
+            columns: ["follower_id"]
             isOneToOne: false
-            referencedRelation: "listening_sessions"
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "followers_following_id_fkey"
+            columns: ["following_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
         ]
       }
     }
@@ -303,26 +220,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      cleanup_expired_messages: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-          }
-      get_user_friends: {
-        Args: { user_id: string }
-        Returns: {
-          friend_id: string
-          friend_name: string
-          friend_avatar_url: string
-        }[]
-      }
-
-      get_user_stats: {
-        Args: { user_id: string }
-        Returns: {
-          followers_count: number
-          following_count: number
-        }[]
-      }
+      [_ in never]: never
     }
     Enums: {
       [_ in never]: never
@@ -333,22 +231,26 @@ export type Database = {
   }
 }
 
-type DefaultSchema = Database[Extract<keyof Database, "public">]
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-        Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-      Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
-      Row: infer R
+      ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+   : never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+    Row: infer R
     }
     ? R
     : never
@@ -365,15 +267,17 @@ export type Tables<
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Insert: infer I
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+       Insert: infer I
     }
     ? I
     : never
@@ -388,15 +292,17 @@ export type TablesInsert<
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Update: infer U
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+     Update: infer U
     }
     ? U
     : never
@@ -411,14 +317,16 @@ export type TablesUpdate<
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
     : never = never,
-> = DefaultSchemaEnumNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
     ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
     : never
@@ -426,15 +334,17 @@ export type Enums<
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
     : never = never,
-> = PublicCompositeTypeNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
-  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+ : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
 

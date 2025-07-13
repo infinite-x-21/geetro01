@@ -11,6 +11,9 @@ import AuthPage from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import HomePage from "./pages/Home";
 import StoryPlayer from "./pages/StoryPlayer";
+import VideoPlayer from "./pages/VideoPlayer";
+import VideosPage from "./pages/Videos";
+
 import ProfilePage from "./pages/Profile";
 import Footer from "@/components/ui/Footer";
 import AudioPlayer from "@/components/ui/AudioPlayer";
@@ -37,6 +40,10 @@ const App = () => (
               <Route path="/auth" element={<AuthPage />} />
               <Route path="/stories" element={<StoriesPage />} />
               <Route path="/stories/:id" element={<StoryPlayer />} />
+                <Route path="/videos" element={<VideosPage />} />
+    
+              <Route path="/videos/:id" element={<VideoPlayer />} />
+
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/profile/:userId" element={<UserProfilePage />} />
               <Route path="/playlists" element={<PlaylistsPage />} />
